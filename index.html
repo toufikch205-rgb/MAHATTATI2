@@ -820,7 +820,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
      if(signup){
        result=await client.auth.signUp({
          email:email.trim(),password,
-         options:{data:{display_name:displayName},emailRedirectTo:window.location.href}
+         options:{data:{display_name:displayName},emailRedirectTo:'https://toufikch205-rgb.github.io/MAHATTATI2/'}
        });
        if(result.error)throw result.error;
        if(!result.data.session){
@@ -844,6 +844,20 @@ button:disabled{opacity:.55;cursor:not-allowed}
      alert('تعذر إكمال العملية: '+msg+'\nتحقق من البريد وكلمة المرور واتصال الإنترنت.');
      return false;
    }
+ };
+ window.mahattatiIsSignedIn=()=>Boolean(currentSession?.user);
+ window.mahattatiUpdateProfile=async displayName=>{
+   if(!currentSession?.user)throw new Error('يجب تسجيل الدخول أولاً.');
+   const name=String(displayName||'').trim();
+   if(!name)throw new Error('أدخل اسمًا صحيحًا.');
+   const {error}=await client.from('user_profiles').upsert({id:currentSession.user.id,display_name:name,updated_at:new Date().toISOString()},{onConflict:'id'});
+   if(error)throw error;
+   const {error:authError}=await client.auth.updateUser({data:{display_name:name}});
+   if(authError)throw authError;
+   safeSet('mahattati_profile_name',name);
+   if($id('menuUsername'))$id('menuUsername').textContent=name;
+   if($id('masProfileName'))$id('masProfileName').textContent=name;
+   return name;
  };
  window.mahattatiSaveTripRequest=async request=>{
    if(!currentSession?.user)throw new Error('يجب تسجيل الدخول قبل حفظ الطلب في قاعدة البيانات.');
@@ -2087,7 +2101,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
  window.openMahattatiAccountSettings=openSettings;
  $id('bottomNavAccount')?.addEventListener('click',()=>{if(typeof closeMenu==='function')closeMenu();if(typeof closeRouteModal==='function'&&$id('routeModal')?.classList.contains('open'))closeRouteModal();if(typeof hideTripMapPage==='function'&&$id('tripMapPage')?.classList.contains('open'))hideTripMapPage();if(typeof closeSuggestFarePage==='function'&&$id('suggestFarePage')?.classList.contains('open'))closeSuggestFarePage();$id('requestHistoryPage')?.classList.remove('open');$id('requestHistoryPage')?.setAttribute('aria-hidden','true');setBottomNavActive?.('bottomNavAccount');openSettings();});
  $id('masBack').addEventListener('click',closeSettings);
- $id('masEditName').addEventListener('click',()=>{const current=$id('masProfileName').textContent;const value=prompt('أدخل اسم الملف الشخصي:',current==='غير محدد'?'':current);if(value===null)return;const name=value.trim();if(!name){notify('يرجى إدخال اسم صحيح');return;}if(!safeSet('mahattati_profile_name',name)){notify('تعذر حفظ الاسم على هذا الجهاز');return;}$id('masProfileName').textContent=name;if($id('menuUsername'))$id('menuUsername').textContent=name;notify('تم تحديث الاسم');});
+ $id('masEditName').addEventListener('click',async()=>{const current=$id('masProfileName').textContent;const value=prompt('أدخل اسم الملف الشخصي:',current==='غير محدد'?'':current);if(value===null)return;const name=value.trim();if(!name){notify('يرجى إدخال اسم صحيح');return;}try{if(window.mahattatiIsSignedIn?.()&&window.mahattatiUpdateProfile){await window.mahattatiUpdateProfile(name);}else if(!safeSet('mahattati_profile_name',name)){notify('تعذر حفظ الاسم على هذا الجهاز');return;}if($id('masProfileName'))$id('masProfileName').textContent=name;if($id('menuUsername'))$id('menuUsername').textContent=name;notify(window.mahattatiIsSignedIn?.()?'تم تحديث الاسم في حسابك':'تم حفظ الاسم على هذا الجهاز فقط. سجّل الدخول لمزامنته.');}catch(error){console.error(error);notify('تعذر تحديث الاسم في قاعدة البيانات: '+(error?.message||'خطأ غير معروف'));}});
  $id('masEditPhone').addEventListener('click',()=>{const current=safeGet('mahattati_phone','');const value=prompt('أدخل رقم الهاتف الجديد:',current);if(value===null)return;const phone=value.trim();if(!phone){notify('يرجى إدخال رقم الهاتف');return;}if(!/^[+\d\s()-]{7,20}$/.test(phone)){notify('تحقق من صيغة رقم الهاتف');return;}if(!safeSet('mahattati_phone',phone)){notify('تعذر حفظ الرقم على هذا الجهاز');return;}$id('masPhoneValue').textContent=phone;notify('تم حفظ الرقم محليًا؛ التحقق من الرقم غير متاح دون خادم');});
  [['masAppearance','mahattati_appearance'],['masDistance','mahattati_distance'],['masLanguage','mahattati_language']].forEach(([id,key])=>{$id(id).value=safeGet(key,id==='masDistance'?'km':id==='masLanguage'?'ar':'default');$id(id).addEventListener('change',()=>{safeSet(key,$id(id).value);notify('تم حفظ التفضيل');});});
  page.querySelectorAll('[data-location-choice]').forEach(btn=>btn.addEventListener('click',()=>{const choice=btn.dataset.locationChoice;safeSet('mahattati_driver_location',choice);$id('masLocationYes').classList.toggle('active',choice==='yes');$id('masLocationNo').classList.toggle('active',choice==='no');notify(choice==='yes'?'وافقت على إظهار الموقع للسائق':'رفضت إظهار الموقع للسائق');}));
@@ -2096,13 +2110,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
  $id('masAppVersion').addEventListener('click',()=>notify('إصدار التطبيق: 1.0.0'));
  $id('masAuthAction')?.addEventListener('click',()=>window.mahattatiAuthFlow?.());
  $id('masDeleteAccount').addEventListener('click',()=>{
-   if(window.mahattatiSupabaseClient){
-     const hasSession=Boolean(window.mahattatiSupabaseClient.auth);
-     if(hasSession&&typeof window.mahattatiSignOut==='function'){
-       const confirmOut=confirm('هل تريد تسجيل الخروج من حساب محطتي؟');
-       if(confirmOut)window.mahattatiSignOut();
-       return;
-     }
+   if(window.mahattatiIsSignedIn?.()&&typeof window.mahattatiSignOut==='function'){
+     const confirmOut=confirm('هل تريد تسجيل الخروج من حساب محطتي؟');
+     if(confirmOut)window.mahattatiSignOut();
+     return;
    }
    try{sessionStorage.removeItem('mahattati_welcome_seen')}catch(e){}
    const welcome=document.getElementById('mahattatiWelcome');
