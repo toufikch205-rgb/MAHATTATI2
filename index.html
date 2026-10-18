@@ -756,6 +756,161 @@ button:disabled{opacity:.55;cursor:not-allowed}
   </div>
  </div>
 </div>
+<!-- Supabase authentication and cloud database integration for MAHATTATI -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script id="mahattati-supabase-integration">
+(()=>{
+ 'use strict';
+ const SUPABASE_URL='https://smzximwtqwvvfwlbxpca.supabase.co';
+ const SUPABASE_PUBLISHABLE_KEY='sb_publishable_dyr_bfOQQd1rFcF5l5a-Yg_TYj6uzBw';
+ const $id=id=>document.getElementById(id);
+ const tell=message=>{if(typeof window.toast==='function')window.toast(message);else alert(message);};
+ if(!window.supabase||!window.supabase.createClient){
+   console.error('Supabase JS SDK failed to load.');
+   window.mahattatiAuthReady=false;
+   return;
+ }
+ const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
+   auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+ });
+ window.mahattatiSupabaseClient=client;
+ window.mahattatiAuthReady=true;
+ let currentSession=null;
+ const safeSet=(key,value)=>{try{localStorage.setItem(key,String(value));}catch(e){}};
+ const getName=()=>currentSession?.user?.user_metadata?.display_name||currentSession?.user?.user_metadata?.full_name||currentSession?.user?.email?.split('@')[0]||'مستخدم';
+ function paintAccount(){
+   const name=currentSession?getName():(()=>{try{return localStorage.getItem('mahattati_profile_name')||'Tfk'}catch(e){return 'Tfk'}})();
+   if($id('menuUsername'))$id('menuUsername').textContent=name;
+   if($id('masProfileName'))$id('masProfileName').textContent=name;
+   const authButton=$id('masAuthAction');
+   if(authButton)authButton.textContent=currentSession?'تغيير الحساب / تسجيل الدخول':'تسجيل الدخول أو إنشاء حساب';
+   const logout=$id('masDeleteAccount');
+   if(logout)logout.textContent=currentSession?'تسجيل الخروج':'العودة إلى صفحة الترحيب';
+ }
+ async function saveProfile(user,displayName){
+   if(!user?.id)return;
+   const name=(displayName||user.user_metadata?.display_name||user.email?.split('@')[0]||'مستخدم').trim();
+   const {error}=await client.from('user_profiles').upsert({id:user.id,display_name:name,updated_at:new Date().toISOString()},{onConflict:'id'});
+   if(error)throw error;
+   safeSet('mahattati_profile_name',name);
+   if($id('menuUsername'))$id('menuUsername').textContent=name;
+   if($id('masProfileName'))$id('masProfileName').textContent=name;
+ }
+ window.mahattatiAuthFlow=async()=>{
+   if(!window.mahattatiAuthReady){alert('تعذر تحميل نظام تسجيل الدخول. تحقق من الإنترنت ثم أعد تحميل الصفحة.');return false;}
+   const choice=prompt('حساب محطتي\nاكتب 1 لتسجيل الدخول أو 2 لإنشاء حساب جديد:',currentSession?'1':'2');
+   if(choice===null)return false;
+   const signup=choice.trim()==='2';
+   if(!signup&&choice.trim()!=='1'){alert('اختر 1 لتسجيل الدخول أو 2 لإنشاء حساب.');return false;}
+   const email=prompt('أدخل بريدك الإلكتروني:');
+   if(email===null)return false;
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())){alert('تحقق من صحة البريد الإلكتروني.');return false;}
+   const password=prompt(signup?'أنشئ كلمة مرور (8 أحرف على الأقل):':'أدخل كلمة المرور:');
+   if(password===null)return false;
+   if(password.length<8){alert('كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل.');return false;}
+   let displayName='';
+   if(signup){
+     displayName=prompt('ما الاسم الذي تريد إظهاره في محطتي؟');
+     if(displayName===null)return false;
+     displayName=displayName.trim();
+     if(!displayName){alert('أدخل اسمك للمتابعة.');return false;}
+   }
+   try{
+     let result;
+     if(signup){
+       result=await client.auth.signUp({
+         email:email.trim(),password,
+         options:{data:{display_name:displayName},emailRedirectTo:window.location.href}
+       });
+       if(result.error)throw result.error;
+       if(!result.data.session){
+         alert('تم إنشاء طلب الحساب. افتح رسالة التأكيد التي أرسلناها إلى بريدك الإلكتروني، ثم ارجع إلى محطتي وسجّل الدخول. إذا لم تصل الرسالة، تحقق من مجلد البريد غير المرغوب فيه.');
+         return false;
+       }
+     }else{
+       result=await client.auth.signInWithPassword({email:email.trim(),password});
+       if(result.error)throw result.error;
+     }
+     currentSession=result.data.session;
+     if(currentSession?.user)await saveProfile(currentSession.user,displayName||currentSession.user.user_metadata?.display_name);
+     paintAccount();
+     const welcome=$id('mahattatiWelcome');
+     if(welcome){welcome.hidden=true;document.body.style.overflow='';try{sessionStorage.setItem('mahattati_welcome_seen','1')}catch(e){}}
+     tell('تم تسجيل الدخول بنجاح، وحسابك متصل بقاعدة بيانات محطتي.');
+     return true;
+   }catch(error){
+     console.error('MAHATTATI authentication error:',error);
+     const msg=error?.message||'حدث خطأ غير معروف';
+     alert('تعذر إكمال العملية: '+msg+'\nتحقق من البريد وكلمة المرور واتصال الإنترنت.');
+     return false;
+   }
+ };
+ window.mahattatiSaveTripRequest=async request=>{
+   if(!currentSession?.user)throw new Error('يجب تسجيل الدخول قبل حفظ الطلب في قاعدة البيانات.');
+   const row={
+     user_id:currentSession.user.id,
+     from_location:String(request.pickup||'').slice(0,500),
+     to_location:String(request.destination||'').slice(0,500),
+     status:'pending',
+     fare:Number(request.price)||null,
+     details:{
+       local_id:String(request.id||''),
+       passengers:Number(request.passengers)||1,
+       comment:String(request.comment||'').slice(0,300),
+       departure:String(request.departure||''),
+       mode:String(request.mode||'car'),
+       created_at_local:request.createdAt||Date.now()
+     }
+   };
+   const {data,error}=await client.from('trip_requests').insert(row).select('id,user_id,from_location,to_location,status,fare,distance_km,details,created_at').single();
+   if(error)throw error;
+   return data;
+ };
+ window.mahattatiLoadTripRequests=async()=>{
+   if(!currentSession?.user)return null;
+   const {data,error}=await client.from('trip_requests')
+     .select('id,from_location,to_location,status,fare,distance_km,details,created_at')
+     .eq('user_id',currentSession.user.id).order('created_at',{ascending:false}).limit(200);
+   if(error)throw error;
+   return (data||[]).map(row=>({
+     id:row.id,pickup:row.from_location,destination:row.to_location,
+     price:row.fare, status:row.status==='pending'?'جارية':row.status==='in_progress'?'جارية':row.status==='completed'?'مكتملة':row.status,
+     createdAt:row.created_at?new Date(row.created_at).getTime():Date.now(),
+     passengers:row.details?.passengers||1,comment:row.details?.comment||'',
+     departure:row.details?.departure||'',mode:row.details?.mode||'car',cloudId:row.id
+   }));
+ };
+ window.mahattatiSignOut=async()=>{
+   try{
+     const {error}=await client.auth.signOut();
+     if(error)throw error;
+     currentSession=null;
+     try{localStorage.removeItem('mahattati_profile_name')}catch(e){}
+     paintAccount();
+     const welcome=$id('mahattatiWelcome');
+     if(welcome){welcome.hidden=false;document.body.style.overflow='hidden';}
+     tell('تم تسجيل الخروج من حساب محطتي.');
+   }catch(error){console.error('MAHATTATI sign-out error:',error);alert('تعذر تسجيل الخروج: '+(error?.message||'خطأ غير معروف'));}
+ };
+ client.auth.onAuthStateChange((event,session)=>{
+   currentSession=session||null;
+   paintAccount();
+   if(session?.user){
+     const name=session.user.user_metadata?.display_name||session.user.email?.split('@')[0]||'مستخدم';
+     safeSet('mahattati_profile_name',name);
+     if($id('menuUsername'))$id('menuUsername').textContent=name;
+     if($id('masProfileName'))$id('masProfileName').textContent=name;
+     if(event==='SIGNED_IN'||event==='INITIAL_SESSION')setTimeout(()=>saveProfile(session.user,name).catch(e=>console.warn('Profile sync failed:',e)),0);
+   }
+ });
+ client.auth.getSession().then(({data,error})=>{
+   if(error)console.warn('Could not restore Supabase session:',error);
+   currentSession=data?.session||null;paintAccount();
+   if(currentSession?.user)saveProfile(currentSession.user).catch(e=>console.warn('Profile sync failed:',e));
+ }).catch(e=>console.warn('Could not initialize Supabase session:',e));
+})();
+</script>
+
 <script id="mahattati-welcome-screen-script">
 (()=>{
  const welcome=document.getElementById('mahattatiWelcome');
@@ -765,23 +920,10 @@ button:disabled{opacity:.55;cursor:not-allowed}
  // Start opens the existing app without changing its other behavior.
  start?.addEventListener('click',enter);
 
- // Login asks for the user's display name, saves it locally, then opens the main interface.
- login?.addEventListener('click',()=>{
-   let currentName='';
-   try{currentName=localStorage.getItem('mahattati_profile_name')||''}catch(e){}
-   const enteredName=prompt('ما اسمك؟ أدخل اسمك للمتابعة إلى الواجهة الرئيسية:',currentName);
-   if(enteredName===null)return;
-   const name=enteredName.trim();
-   if(!name){
-     alert('يرجى إدخال اسمك أولاً.');
-     return;
-   }
-   try{localStorage.setItem('mahattati_profile_name',name)}catch(e){}
-   const menuName=document.getElementById('menuUsername');
-   if(menuName)menuName.textContent=name;
-   const profileName=document.getElementById('masProfileName');
-   if(profileName)profileName.textContent=name;
-   enter();
+ // The welcome login now uses Supabase Auth rather than a device-only name prompt.
+ login?.addEventListener('click',async()=>{
+   if(typeof window.mahattatiAuthFlow==='function'){await window.mahattatiAuthFlow();return;}
+   alert('نظام تسجيل الدخول لم يجهز بعد. أعد تحميل الصفحة وحاول مجددًا.');
  });
  document.body.style.overflow='hidden';
 })();
@@ -1133,7 +1275,7 @@ function showTripMapPage(){document.body.classList.add('trip-page-active');const
 function hideTripMapPage(){const page=$('tripMapPage');page.classList.remove('open');page.setAttribute('aria-hidden','true');document.body.classList.remove('trip-page-active');setTimeout(()=>map.invalidateSize(),80);}
 $('tripPageBack').onclick=hideTripMapPage;$('tripPageEdit').onclick=()=>{hideTripMapPage();openRouteModal();};$('tripFareEdit').onclick=openSuggestFarePage;$('tripFilters').onclick=()=>openTripOptions();
 let requestSubmissionInProgress=false;
-function submitTripRequest(){
+async function submitTripRequest(){
  const modal=$('requestSentModal');
  // Guard against rapid taps while validation/storage is running and against a second open confirmation.
  if(requestSubmissionInProgress||modal.classList.contains('open')) return;
@@ -1170,6 +1312,16 @@ function submitTripRequest(){
  }
  requestSubmissionInProgress=true;
  try{
+  if(!window.mahattatiSupabaseClient || !window.mahattatiAuthReady){
+   toast('تعذر الاتصال بنظام الحسابات. تحقق من الإنترنت ثم أعد تحميل الصفحة.');return;
+  }
+  const {data:sessionData,error:sessionError}=await window.mahattatiSupabaseClient.auth.getSession();
+  if(sessionError)throw sessionError;
+  if(!sessionData?.session?.user){
+   toast('لحفظ طلبك في قاعدة البيانات، سجّل الدخول أو أنشئ حسابًا أولًا.');
+   if(typeof window.mahattatiAuthFlow==='function')await window.mahattatiAuthFlow();
+   return;
+  }
   let requests=[];
   const stored=localStorage.getItem('mahattati_requests')||'[]';
   const parsed=JSON.parse(stored);
@@ -1185,6 +1337,13 @@ function submitTripRequest(){
   requests.unshift(request);
   // Keep browser storage bounded so repeated demo use cannot grow it indefinitely.
   localStorage.setItem('mahattati_requests',JSON.stringify(requests.slice(0,200)));
+  try{
+   await window.mahattatiSaveTripRequest(request);
+  }catch(cloudError){
+   console.error('Cloud trip save failed:',cloudError);
+   toast('لم يُحفظ الطلب في قاعدة البيانات: '+(cloudError?.message||'تحقق من الاتصال ثم أعد المحاولة.'));
+   return;
+  }
   proposedFare=request.price;
   modal.classList.add('open');modal.setAttribute('aria-hidden','false');
  }catch(e){
@@ -1281,9 +1440,18 @@ function showRequestHistory(){
   $('requestHistoryPage').classList.add('open');$('requestHistoryPage').setAttribute('aria-hidden','false');
   setBottomNavActive('bottomNavHistory');renderRequestHistory('all');
 }
-function renderRequestHistory(filter){
+async function renderRequestHistory(filter){
   document.querySelectorAll('.history-filter').forEach(b=>b.classList.toggle('active',b.dataset.historyFilter===filter));
-  let requests=[];try{requests=JSON.parse(localStorage.getItem('mahattati_requests')||'[]');if(!Array.isArray(requests))requests=[];}catch(e){requests=[];}
+  let requests=[];
+  try{
+    if(typeof window.mahattatiLoadTripRequests==='function'){
+      const cloudRequests=await window.mahattatiLoadTripRequests();
+      if(Array.isArray(cloudRequests))requests=cloudRequests;
+    }
+  }catch(cloudError){console.error('Cloud history load failed:',cloudError);toast('تعذر تحميل السجل من قاعدة البيانات. تحقق من الاتصال.');}
+  if(!requests.length){
+    try{requests=JSON.parse(localStorage.getItem('mahattati_requests')||'[]');if(!Array.isArray(requests))requests=[];}catch(e){requests=[];}
+  }
   requests=requests.filter(r=>filter==='all'||(filter==='active'?['active','pending','in_progress','جارية'].includes(String(r.status||'').toLowerCase()):['completed','complete','done','مكتملة'].includes(String(r.status||'').toLowerCase())));
   const list=$('requestHistoryList');list.innerHTML='';
   if(!requests.length){const empty=document.createElement('div');empty.className='history-empty';const icon=document.createElement('span');icon.className='history-empty-icon';icon.textContent='◷';const title=document.createElement('strong');title.textContent=filter==='active'?'لا توجد طلبات جارية':filter==='completed'?'لا توجد رحلات مكتملة':'لا توجد طلبات محفوظة بعد';const desc=document.createElement('p');desc.textContent='ستظهر هنا طلباتك الجارية والرحلات التي أكملتها عند توفر تسجيل الطلبات في التطبيق.';empty.append(icon,title,desc);list.appendChild(empty);return;}
@@ -1886,6 +2054,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
    <button class="mas-full-action" id="masLegalDocs" type="button"><span>المستندات القانونية</span><span class="mas-arrow">‹</span></button>
    <button class="mas-full-action" id="masAppVersion" type="button"><span>إصدار التطبيق</span><span class="mas-version">1.0.0</span></button>
   </div>
+  <div class="mas-section-label">حساب محطتي</div>
+  <div class="mas-card"><button class="mas-full-action" id="masAuthAction" type="button"><span>تسجيل الدخول أو إنشاء حساب</span><span class="mas-arrow">‹</span></button></div>
   <div class="mas-section-label">إدارة الحساب</div>
   <div class="mas-card"><button class="mas-full-action" id="masDeleteAccount" type="button"><span>تسجيل الخروج</span><span class="mas-arrow">‹</span></button></div>
   <p class="mas-note">يمكنك تسجيل الخروج والعودة إلى صفحة الترحيب في أي وقت.</p>
@@ -1924,19 +2094,20 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
  $id('masRegisterDriver').addEventListener('click',()=>notify('تسجيل السائق يحتاج إلى استكمال نموذج وربطه بالخادم'));
  $id('masLegalDocs').addEventListener('click',()=>{const msg='المستندات القانونية\nسياسة الخصوصية وشروط الاستخدام تحتاج إلى إضافة روابطها الرسمية.';alert(msg)});
  $id('masAppVersion').addEventListener('click',()=>notify('إصدار التطبيق: 1.0.0'));
+ $id('masAuthAction')?.addEventListener('click',()=>window.mahattatiAuthFlow?.());
  $id('masDeleteAccount').addEventListener('click',()=>{
+   if(window.mahattatiSupabaseClient){
+     const hasSession=Boolean(window.mahattatiSupabaseClient.auth);
+     if(hasSession&&typeof window.mahattatiSignOut==='function'){
+       const confirmOut=confirm('هل تريد تسجيل الخروج من حساب محطتي؟');
+       if(confirmOut)window.mahattatiSignOut();
+       return;
+     }
+   }
    try{sessionStorage.removeItem('mahattati_welcome_seen')}catch(e){}
    const welcome=document.getElementById('mahattatiWelcome');
-   if(welcome){
-     welcome.hidden=false;
-     document.body.style.overflow='hidden';
-     document.getElementById('menuBackdrop')?.classList.remove('open');
-     document.getElementById('accountPage')?.classList.remove('active');
-     document.getElementById('historyPage')?.classList.remove('active');
-     window.scrollTo({top:0,behavior:'smooth'});
-   }else{
-     location.reload();
-   }
+   if(welcome){welcome.hidden=false;document.body.style.overflow='hidden';document.getElementById('menuBackdrop')?.classList.remove('open');}
+   else location.reload();
  });
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&page.classList.contains('open'))closeSettings();});
  // The account tab opens this dedicated settings page rather than the side menu.
