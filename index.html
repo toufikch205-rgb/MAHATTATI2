@@ -798,7 +798,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
  }
  window.mahattatiAuthFlow=async()=>{
    if(!window.mahattatiAuthReady){alert('تعذر تحميل نظام تسجيل الدخول. تحقق من الإنترنت ثم أعد تحميل الصفحة.');return false;}
-   const choice=prompt('حساب محطتي\nاكتب 1 لتسجيل الدخول أو 2 لإنشاء حساب جديد:',currentSession?'1':'2');
+   const choice=prompt('حساب محطتي\nاكتب 1 لتسجيل الدخول بالبريد الإلكتروني وكلمة المرور أو 2 لإنشاء حساب جديد:', '1');
    if(choice===null)return false;
    const signup=choice.trim()==='2';
    if(!signup&&choice.trim()!=='1'){alert('اختر 1 لتسجيل الدخول أو 2 لإنشاء حساب.');return false;}
@@ -931,14 +931,13 @@ button:disabled{opacity:.55;cursor:not-allowed}
  const start=document.getElementById('mahattatiWelcomeStart');
  const login=document.getElementById('mahattatiWelcomeLogin');
  const enter=()=>{welcome.hidden=true;document.body.style.overflow='';try{sessionStorage.setItem('mahattati_welcome_seen','1')}catch(e){}};
- // Start opens the existing app without changing its other behavior.
- start?.addEventListener('click',enter);
-
- // The welcome login now uses Supabase Auth rather than a device-only name prompt.
- login?.addEventListener('click',async()=>{
+ // Start now opens the email/password authentication flow instead of bypassing login.
+ const openAuth=async()=>{
    if(typeof window.mahattatiAuthFlow==='function'){await window.mahattatiAuthFlow();return;}
    alert('نظام تسجيل الدخول لم يجهز بعد. أعد تحميل الصفحة وحاول مجددًا.');
- });
+ };
+ start?.addEventListener('click',openAuth);
+ login?.addEventListener('click',openAuth);
  document.body.style.overflow='hidden';
 })();
 </script>
