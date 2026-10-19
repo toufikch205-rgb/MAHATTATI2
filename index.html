@@ -2026,6 +2026,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
      else if(lower.includes('email not confirmed'))friendly='يجب تأكيد البريد الإلكتروني من الرسالة التي وصلتك قبل تسجيل الدخول.';
      else if(lower.includes('user already registered')||lower.includes('already registered'))friendly='هذا البريد الإلكتروني مسجّل من قبل. اختر تسجيل الدخول بدل إنشاء حساب جديد.';
      else if(lower.includes('password')&&(lower.includes('least')||lower.includes('short')||lower.includes('weak')))friendly='كلمة المرور ضعيفة أو قصيرة. استعمل 6 أحرف على الأقل.';
+     else if(lower.includes('rate limit')||lower.includes('too many requests')||lower.includes('email rate limit exceeded'))friendly='وصلنا إلى الحد المؤقت لإرسال رسائل البريد الإلكتروني في Supabase. لا تكرر إنشاء الحساب الآن. إذا كان لديك حساب بالفعل، ارجع إلى تسجيل الدخول. الحل الدائم هو إعداد SMTP مخصص في Supabase، أو الانتظار حتى ينتهي الحد المؤقت.';
      else if(lower.includes('failed to fetch')||lower.includes('network')||lower.includes('load failed'))friendly='تعذّر الاتصال بخدمة تسجيل الدخول. تحقق من الإنترنت وأعد المحاولة.';
      else if(raw)friendly=raw;
      say(friendly);
