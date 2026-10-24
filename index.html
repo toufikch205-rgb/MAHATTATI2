@@ -1086,6 +1086,115 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .mdd-request-route{background:#fff;border:1px solid #e4ebe4;border-radius:17px;padding:5px 15px;margin:12px 0}.mdd-request-stop{display:flex;align-items:center;gap:12px;padding:12px 0}.mdd-request-stop+.mdd-request-stop{border-top:1px solid #edf0ed}.mdd-stop-dot,.mdd-stop-flag{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:11px;background:#edf8f0;color:#159b55;font-weight:900}.mdd-request-stop strong{display:block;font-size:15px;line-height:1.5;margin-top:3px;overflow-wrap:anywhere}
 .mdd-request-actions-title{font-size:18px;font-weight:850;margin:18px 2px 11px}.mdd-request-actions{display:grid;gap:10px}.mdd-request-accept,.mdd-request-skip{display:flex;align-items:center;gap:11px;width:100%;min-height:52px;border-radius:14px;padding:10px 13px;font-size:14px;font-weight:800;text-align:right}.mdd-request-accept{background:#00bd69;border:1px solid #00bd69;color:#fff;box-shadow:0 5px 14px #00bd691c}.mdd-request-accept strong,.mdd-request-skip strong,.mdd-request-offer-title>strong{width:29px;height:29px;display:grid;place-items:center;flex:0 0 29px;border-radius:9px;background:#ffffff2b;font-size:14px}.mdd-request-offer{background:#fff;border:1px solid #e2eae2;border-radius:16px;padding:13px}.mdd-request-offer-title{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:850;margin-bottom:10px}.mdd-request-offer-title>strong{background:#e9f8ee;color:#159653}.mdd-request-offer-input{display:flex;align-items:center;border:1px solid #dfe8df;border-radius:12px;overflow:hidden;background:#fafcfa}.mdd-request-offer-input input{width:100%;min-width:0;border:0;outline:none;background:transparent;padding:12px;font:inherit;font-size:16px;color:#263b2d}.mdd-request-offer-input span{padding:0 12px;color:#6f7d71;font-size:12px;font-weight:800}.mdd-request-offer textarea{display:block;width:100%;resize:vertical;margin-top:9px;border:1px solid #e2eae2;border-radius:11px;padding:10px;font:inherit;font-size:13px;outline-color:#00bd69;background:#fff}.mdd-request-offer #mddRequestSendOffer{width:100%;margin-top:9px;min-height:44px;border:1px solid #bce8cb;border-radius:12px;background:#effaf2;color:#148b4c;font:inherit;font-weight:850}.mdd-request-skip{justify-content:center;background:#fff;border:1px solid #e1e8e1;color:#647166}.mdd-request-skip strong{background:#f1f4f1;color:#6c796e}.mdd-request-map-note{margin:12px 3px 0;font-size:10px;line-height:1.7;color:#89938a}
 @media(max-width:380px){.mdd-request-content{padding:11px 11px 18px}.mdd-request-map{height:190px}.mdd-request-stats{gap:6px}.mdd-request-stats>div{padding:9px 7px}.mdd-request-stats small{font-size:9px}.mdd-request-stats strong{font-size:12px}.mdd-request-price strong{font-size:27px}.mdd-request-header h1{font-size:20px}}
+
+/* Consolidated request-page visual refinements. */
+
+/* Refined ride request screen: closer to the supplied reference while keeping existing controls and handlers */
+#mddRideRequestPage{background:#f7faf9!important;color:#103b35!important;overflow-y:auto!important;padding-bottom:calc(8px + env(safe-area-inset-bottom))!important;font-family:Tahoma,Arial,sans-serif!important}
+#mddRideRequestPage .mdd-request-header{position:relative;display:grid;grid-template-columns:74px 1fr 54px;gap:8px;min-height:64px;padding:8px 14px;background:#fff;border-bottom:1px solid #edf1ef;backdrop-filter:none}
+#mddRideRequestPage .mdd-request-header button{grid-column:3;grid-row:1;width:42px;height:42px;border:0;border-radius:50%;background:#f1f5f5;color:#5d737b;font-size:26px;justify-self:end;display:grid;place-items:center}
+#mddRideRequestPage .mdd-request-header h1{grid-column:2;grid-row:1;justify-self:center;align-self:center;text-align:center;font-size:25px;font-weight:900;letter-spacing:-.4px;color:#103b35}
+#mddRideRequestPage .mdd-request-pill{grid-column:1;grid-row:1;align-self:center;justify-self:start;border-radius:18px;background:#effaf4;color:#08a85c;font-size:12px;padding:9px 12px}
+#mddRideRequestPage .mdd-request-content{max-width:720px;padding:10px 13px 12px}
+#mddRideRequestPage .mdd-request-map{height:clamp(205px,30dvh,300px);border:1px solid #e1ebec;border-radius:28px;background:#edf5f2;box-shadow:0 8px 22px #174d3910}
+#mddRideRequestPage .mdd-map-grid{opacity:.42}
+#mddRideRequestPage .mdd-map-road{opacity:.96}
+#mddRideRequestPage .mdd-map-route path:last-child{stroke:#00c96a;stroke-width:5.5;stroke-dasharray:none}
+#mddRideRequestPage .mdd-map-pin b{width:42px;height:42px;border:4px solid #fff;background:#00bf69;color:#fff;box-shadow:0 3px 10px #153c2520;font-size:17px}
+#mddRideRequestPage .mdd-map-pin{font-size:12px;font-weight:800}
+#mddRideRequestPage .mdd-map-pin span{padding:8px 11px;border:1px solid #edf1ef;border-radius:13px;background:#fff;color:#143b35;box-shadow:0 4px 12px #1a44330d}
+#mddRideRequestPage .mdd-map-caption{background:#ffffffd9;border-radius:10px;padding:5px 8px;font-size:10px}
+#mddRideRequestPage .mdd-request-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:10px 0 8px;padding:15px 6px;background:#fff;border:1px solid #e7eeee;border-radius:27px;box-shadow:0 4px 16px #153f3007}
+#mddRideRequestPage .mdd-request-stats>div{padding:7px 8px;border:0;border-radius:0;background:transparent;text-align:right}
+#mddRideRequestPage .mdd-request-stats>div+div{border-right:1px solid #e5ecee}
+#mddRideRequestPage .mdd-request-stats small{font-size:11px;line-height:1.5;color:#718597;font-weight:650}
+#mddRideRequestPage .mdd-request-stats strong{font-size:18px;line-height:1.4;margin-top:5px;color:#103b35;font-weight:900}
+#mddRideRequestPage .mdd-request-price{min-height:105px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 2px 10px;padding:15px 19px;border:1px solid #d9f0e5;border-radius:27px;background:linear-gradient(110deg,#f1fbf6,#f6fcf8);box-shadow:none}
+#mddRideRequestPage .mdd-request-price small{font-size:13px;line-height:1.6;color:#496e69}
+#mddRideRequestPage .mdd-request-price strong{font-size:43px;line-height:1.15;color:#08733d;font-weight:950;white-space:nowrap}
+#mddRideRequestPage .mdd-request-price strong span{font-size:16px;color:#08733d}
+#mddRideRequestPage .mdd-request-price-tag{order:0;padding:8px 13px;border:1px solid #d2f1e0;border-radius:12px;background:#eaf9f1;color:#00a95c;font-size:13px}
+#mddRideRequestPage .mdd-request-route{margin:8px 2px 12px;padding:4px 17px;border:1px solid #e5edef;border-radius:28px;background:#fff;box-shadow:0 3px 12px #153f3005}
+#mddRideRequestPage .mdd-request-stop{gap:14px;padding:13px 0}
+#mddRideRequestPage .mdd-request-stop+.mdd-request-stop{border-top:1px solid #e8eff0}
+#mddRideRequestPage .mdd-stop-dot,#mddRideRequestPage .mdd-stop-flag{width:43px;height:43px;flex-basis:43px;border-radius:50%;background:#eaf9f1;color:#08b663;font-size:17px}
+#mddRideRequestPage .mdd-request-stop small{font-size:12px;line-height:1.5;color:#75899a}
+#mddRideRequestPage .mdd-request-stop strong{font-size:18px;line-height:1.5;margin-top:3px;color:#103b35;font-weight:850}
+#mddRideRequestPage .mdd-request-actions-title{margin:13px 4px 9px;font-size:22px;line-height:1.5;font-weight:900;color:#103b35}
+#mddRideRequestPage .mdd-request-actions{grid-template-columns:minmax(0,1fr);gap:9px}
+#mddRideRequestPage .mdd-request-accept{min-height:64px;justify-content:center;position:relative;padding:11px 50px 11px 14px;border:0;border-radius:25px;background:linear-gradient(100deg,#00c76b,#00bd65);box-shadow:0 8px 18px #00bd691d;font-size:17px;text-align:center;color:#fff}
+#mddRideRequestPage .mdd-request-accept strong{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:38px;height:38px;flex-basis:38px;border-radius:50%;background:#ffffff2b;font-size:17px}
+#mddRideRequestPage .mdd-request-offer{padding:12px 13px;border:1px solid #e1ebee;border-radius:24px;background:#fff}
+#mddRideRequestPage .mdd-request-offer-title{font-size:15px;gap:9px;margin-bottom:8px;color:#123c36}
+#mddRideRequestPage .mdd-request-offer-title>strong{width:30px;height:30px;flex-basis:30px;border-radius:50%;background:#e9f9f0;color:#00a85b}
+#mddRideRequestPage .mdd-request-offer-input{border-radius:13px;border-color:#e0e9ec;background:#fbfdfc}
+#mddRideRequestPage .mdd-request-offer-input input{padding:10px 11px;font-size:15px}
+#mddRideRequestPage .mdd-request-offer-input span{font-size:12px}
+#mddRideRequestPage .mdd-request-offer textarea{margin-top:7px;padding:8px 10px;font-size:12px;min-height:35px;height:35px;border-color:#e2ebed;border-radius:11px}
+#mddRideRequestPage .mdd-request-offer #mddRequestSendOffer{min-height:40px;margin-top:7px;border:0;border-radius:12px;background:#eaf9f1;color:#079b52;font-size:14px}
+#mddRideRequestPage .mdd-request-skip{min-height:49px;border:1px solid #e2ebee;border-radius:20px;background:#fff;color:#718394;font-size:15px}
+#mddRideRequestPage .mdd-request-skip strong{background:#f1f5f6;color:#7a8d9a;border-radius:50%}
+#mddRequestQuickPrices{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+#mddRequestQuickPrices button{flex:1;min-width:70px;min-height:37px;padding:6px 9px;border:1px solid #e2ebee;border-radius:13px;background:#f8fbfb;color:#36545b;font:800 13px Tahoma,Arial,sans-serif}
+#mddRequestQuickPrices button:active{background:#e5f8ed;border-color:#00c76b}
+@media(max-height:760px){#mddRideRequestPage .mdd-request-map{height:clamp(155px,24dvh,210px)}#mddRideRequestPage .mdd-request-stats{padding:8px 4px;margin:6px 0}#mddRideRequestPage .mdd-request-price{min-height:80px;padding:10px 15px}#mddRideRequestPage .mdd-request-price strong{font-size:34px}#mddRideRequestPage .mdd-request-stop{padding:8px 0}#mddRideRequestPage .mdd-request-actions-title{font-size:18px;margin-top:8px}#mddRideRequestPage .mdd-request-accept{min-height:53px;font-size:15px}}
+@media(max-width:380px){#mddRideRequestPage .mdd-request-header{grid-template-columns:65px 1fr 43px;padding-inline:9px}#mddRideRequestPage .mdd-request-header h1{font-size:21px}#mddRideRequestPage .mdd-request-content{padding-inline:9px}#mddRideRequestPage .mdd-request-map{height:clamp(175px,26dvh,235px)}#mddRideRequestPage .mdd-request-stats small{font-size:9px}#mddRideRequestPage .mdd-request-stats strong{font-size:14px}#mddRideRequestPage .mdd-request-price strong{font-size:34px}#mddRideRequestPage .mdd-request-stop strong{font-size:15px}#mddRideRequestPage .mdd-request-actions-title{font-size:18px}}
+
+
+/* Compact vertical rhythm: retain all details and controls while fitting typical phone screens */
+#mddRideRequestPage{overflow-y:auto!important;overscroll-behavior:contain}
+#mddRideRequestPage .mdd-request-content{padding:6px 11px 8px!important}
+#mddRideRequestPage .mdd-request-map{height:clamp(145px,21dvh,205px)!important;border-radius:22px!important}
+#mddRideRequestPage .mdd-map-pin b{width:35px;height:35px;font-size:14px}
+#mddRideRequestPage .mdd-map-pin span{padding:5px 8px;font-size:11px}
+#mddRideRequestPage .mdd-request-stats{margin:6px 0 5px!important;padding:7px 4px!important;border-radius:19px!important}
+#mddRideRequestPage .mdd-request-stats>div{padding:4px 5px!important}
+#mddRideRequestPage .mdd-request-stats small{font-size:10px!important;line-height:1.3!important}
+#mddRideRequestPage .mdd-request-stats strong{font-size:15px!important;line-height:1.25!important;margin-top:2px!important}
+#mddRideRequestPage .mdd-request-price{min-height:70px!important;margin:5px 1px 6px!important;padding:8px 13px!important;border-radius:20px!important}
+#mddRideRequestPage .mdd-request-price small{font-size:11px!important;line-height:1.35!important}
+#mddRideRequestPage .mdd-request-price strong{font-size:32px!important;line-height:1!important}
+#mddRideRequestPage .mdd-request-price strong span{font-size:13px!important}
+#mddRideRequestPage .mdd-request-price-tag{padding:6px 9px!important;font-size:11px!important}
+#mddRideRequestPage .mdd-request-route{margin:5px 1px 7px!important;padding:2px 12px!important;border-radius:20px!important}
+#mddRideRequestPage .mdd-request-stop{gap:9px!important;padding:7px 0!important}
+#mddRideRequestPage .mdd-stop-dot,#mddRideRequestPage .mdd-stop-flag{width:34px!important;height:34px!important;flex-basis:34px!important;font-size:14px!important}
+#mddRideRequestPage .mdd-request-stop small{font-size:10px!important;line-height:1.3!important}
+#mddRideRequestPage .mdd-request-stop strong{font-size:15px!important;line-height:1.3!important;margin-top:2px!important}
+#mddRideRequestPage .mdd-request-actions-title{font-size:17px!important;line-height:1.35!important;margin:6px 3px 5px!important}
+#mddRideRequestPage .mdd-request-actions{grid-template-columns:minmax(0,1.4fr) minmax(90px,.6fr)!important;gap:7px!important;align-items:stretch}
+#mddRideRequestPage .mdd-request-accept{grid-column:1/-1;min-height:48px!important;padding:8px 45px 8px 10px!important;border-radius:18px!important;font-size:14px!important}
+#mddRideRequestPage .mdd-request-accept strong{width:30px!important;height:30px!important;right:9px!important;font-size:14px!important}
+#mddRideRequestPage .mdd-request-offer{grid-column:1;grid-row:2;padding:7px 9px!important;border-radius:17px!important;min-width:0}
+#mddRideRequestPage .mdd-request-offer-title{font-size:12px!important;gap:5px!important;margin-bottom:4px!important}
+#mddRideRequestPage .mdd-request-offer-title>strong{width:24px!important;height:24px!important;flex-basis:24px!important}
+#mddRideRequestPage #mddRequestQuickPrices{gap:4px!important;margin-top:4px!important}
+#mddRideRequestPage #mddRequestQuickPrices button{min-width:0!important;min-height:31px!important;padding:4px 3px!important;font-size:11px!important;border-radius:10px!important}
+#mddRideRequestPage .mdd-request-offer-input{margin-top:5px!important}
+#mddRideRequestPage .mdd-request-offer-input input{padding:6px 7px!important;font-size:13px!important;min-width:0}
+#mddRideRequestPage .mdd-request-offer-input span{font-size:10px!important}
+#mddRideRequestPage .mdd-request-offer textarea{min-height:28px!important;height:28px!important;margin-top:4px!important;padding:5px 7px!important;font-size:11px!important}
+#mddRideRequestPage .mdd-request-offer #mddRequestSendOffer{min-height:33px!important;margin-top:4px!important;font-size:12px!important}
+#mddRideRequestPage .mdd-request-skip{grid-column:2;grid-row:2;min-height:42px!important;align-self:stretch;border-radius:16px!important;font-size:13px!important}
+@media(max-height:700px){
+ #mddRideRequestPage .mdd-request-header{min-height:52px!important;padding-block:4px!important}
+ #mddRideRequestPage .mdd-request-header h1{font-size:20px!important}
+ #mddRideRequestPage .mdd-request-map{height:clamp(125px,18dvh,165px)!important}
+ #mddRideRequestPage .mdd-request-stats{padding:5px 3px!important;margin:4px 0!important}
+ #mddRideRequestPage .mdd-request-price{min-height:60px!important;padding:6px 10px!important}
+ #mddRideRequestPage .mdd-request-price strong{font-size:28px!important}
+ #mddRideRequestPage .mdd-request-stop{padding:5px 0!important}
+ #mddRideRequestPage .mdd-request-actions-title{font-size:15px!important;margin:4px 2px!important}
+ #mddRideRequestPage .mdd-request-accept{min-height:42px!important}
+}
+@media(max-width:360px){
+ #mddRideRequestPage .mdd-request-content{padding-inline:7px!important}
+ #mddRideRequestPage .mdd-request-stats small{font-size:9px!important}
+ #mddRideRequestPage .mdd-request-stats strong{font-size:13px!important}
+ #mddRideRequestPage .mdd-request-actions{grid-template-columns:minmax(0,1fr) 82px!important}
+ #mddRideRequestPage .mdd-request-offer-title{font-size:11px!important}
+}
+
 </style>
 
 
@@ -3264,13 +3373,6 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
   z-index:2147483001!important;display:flex!important;
   padding-bottom:calc(8px + env(safe-area-inset-bottom))!important;
 }
-#mddRideRequestPage{
-  inset:0 0 calc(74px + env(safe-area-inset-bottom)) 0!important;
-  bottom:calc(74px + env(safe-area-inset-bottom))!important;
-  padding-bottom:8px!important;z-index:9000!important;
-}
-#mddRideRequestPage.open{display:block!important;}
-@media(max-width:420px){#mddRideRequestPage{bottom:calc(74px + env(safe-area-inset-bottom))!important;}}
 </style>
 
 
@@ -3282,15 +3384,6 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
   z-index:2147483001!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
   background:rgba(255,255,255,.99)!important;
 }
-#driverDashboardPage #mddRideRequestPage,
-#mddRideRequestPage{
-  position:fixed!important;top:env(safe-area-inset-top)!important;left:0!important;right:0!important;
-  bottom:calc(74px + env(safe-area-inset-bottom))!important;
-  width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;
-  z-index:9000!important;overflow-y:auto!important;overflow-x:hidden!important;
-  padding-bottom:12px!important;box-sizing:border-box!important;
-}
-#mddRideRequestPage.open[aria-hidden="false"]{display:block!important}
 @media(max-width:420px){
  #driverDashboardPage .mdd-nav{min-height:74px!important;padding:7px 6px calc(7px + env(safe-area-inset-bottom))!important}
  #driverDashboardPage #mddRideRequestPage,#mddRideRequestPage{bottom:calc(74px + env(safe-area-inset-bottom))!important}
@@ -3326,7 +3419,6 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 }
 #driverDashboardPage .mdd-nav button.active{border-radius:14px!important}
 #driverDashboardPage{padding-bottom:calc(88px + env(safe-area-inset-bottom))!important}
-#mddRideRequestPage{padding-bottom:calc(100px + env(safe-area-inset-bottom))!important}
 @media(max-width:380px){
  #driverDashboardPage .mdd-nav{gap:2px!important;padding-inline:5px!important}
  #driverDashboardPage .mdd-nav button{font-size:9px!important;padding-inline:1px!important}
@@ -3749,113 +3841,8 @@ input,textarea,select{min-width:0;max-width:100%}
 
 
 
-<style id="mdd-request-reference-design-90">
-/* Refined ride request screen: closer to the supplied reference while keeping existing controls and handlers */
-#mddRideRequestPage{background:#f7faf9!important;color:#103b35!important;overflow-y:auto!important;padding-bottom:calc(8px + env(safe-area-inset-bottom))!important;font-family:Tahoma,Arial,sans-serif!important}
-#mddRideRequestPage .mdd-request-header{position:relative;display:grid;grid-template-columns:74px 1fr 54px;gap:8px;min-height:64px;padding:8px 14px;background:#fff;border-bottom:1px solid #edf1ef;backdrop-filter:none}
-#mddRideRequestPage .mdd-request-header button{grid-column:3;grid-row:1;width:42px;height:42px;border:0;border-radius:50%;background:#f1f5f5;color:#5d737b;font-size:26px;justify-self:end;display:grid;place-items:center}
-#mddRideRequestPage .mdd-request-header h1{grid-column:2;grid-row:1;justify-self:center;align-self:center;text-align:center;font-size:25px;font-weight:900;letter-spacing:-.4px;color:#103b35}
-#mddRideRequestPage .mdd-request-pill{grid-column:1;grid-row:1;align-self:center;justify-self:start;border-radius:18px;background:#effaf4;color:#08a85c;font-size:12px;padding:9px 12px}
-#mddRideRequestPage .mdd-request-content{max-width:720px;padding:10px 13px 12px}
-#mddRideRequestPage .mdd-request-map{height:clamp(205px,30dvh,300px);border:1px solid #e1ebec;border-radius:28px;background:#edf5f2;box-shadow:0 8px 22px #174d3910}
-#mddRideRequestPage .mdd-map-grid{opacity:.42}
-#mddRideRequestPage .mdd-map-road{opacity:.96}
-#mddRideRequestPage .mdd-map-route path:last-child{stroke:#00c96a;stroke-width:5.5;stroke-dasharray:none}
-#mddRideRequestPage .mdd-map-pin b{width:42px;height:42px;border:4px solid #fff;background:#00bf69;color:#fff;box-shadow:0 3px 10px #153c2520;font-size:17px}
-#mddRideRequestPage .mdd-map-pin{font-size:12px;font-weight:800}
-#mddRideRequestPage .mdd-map-pin span{padding:8px 11px;border:1px solid #edf1ef;border-radius:13px;background:#fff;color:#143b35;box-shadow:0 4px 12px #1a44330d}
-#mddRideRequestPage .mdd-map-caption{background:#ffffffd9;border-radius:10px;padding:5px 8px;font-size:10px}
-#mddRideRequestPage .mdd-request-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:10px 0 8px;padding:15px 6px;background:#fff;border:1px solid #e7eeee;border-radius:27px;box-shadow:0 4px 16px #153f3007}
-#mddRideRequestPage .mdd-request-stats>div{padding:7px 8px;border:0;border-radius:0;background:transparent;text-align:right}
-#mddRideRequestPage .mdd-request-stats>div+div{border-right:1px solid #e5ecee}
-#mddRideRequestPage .mdd-request-stats small{font-size:11px;line-height:1.5;color:#718597;font-weight:650}
-#mddRideRequestPage .mdd-request-stats strong{font-size:18px;line-height:1.4;margin-top:5px;color:#103b35;font-weight:900}
-#mddRideRequestPage .mdd-request-price{min-height:105px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 2px 10px;padding:15px 19px;border:1px solid #d9f0e5;border-radius:27px;background:linear-gradient(110deg,#f1fbf6,#f6fcf8);box-shadow:none}
-#mddRideRequestPage .mdd-request-price small{font-size:13px;line-height:1.6;color:#496e69}
-#mddRideRequestPage .mdd-request-price strong{font-size:43px;line-height:1.15;color:#08733d;font-weight:950;white-space:nowrap}
-#mddRideRequestPage .mdd-request-price strong span{font-size:16px;color:#08733d}
-#mddRideRequestPage .mdd-request-price-tag{order:0;padding:8px 13px;border:1px solid #d2f1e0;border-radius:12px;background:#eaf9f1;color:#00a95c;font-size:13px}
-#mddRideRequestPage .mdd-request-route{margin:8px 2px 12px;padding:4px 17px;border:1px solid #e5edef;border-radius:28px;background:#fff;box-shadow:0 3px 12px #153f3005}
-#mddRideRequestPage .mdd-request-stop{gap:14px;padding:13px 0}
-#mddRideRequestPage .mdd-request-stop+.mdd-request-stop{border-top:1px solid #e8eff0}
-#mddRideRequestPage .mdd-stop-dot,#mddRideRequestPage .mdd-stop-flag{width:43px;height:43px;flex-basis:43px;border-radius:50%;background:#eaf9f1;color:#08b663;font-size:17px}
-#mddRideRequestPage .mdd-request-stop small{font-size:12px;line-height:1.5;color:#75899a}
-#mddRideRequestPage .mdd-request-stop strong{font-size:18px;line-height:1.5;margin-top:3px;color:#103b35;font-weight:850}
-#mddRideRequestPage .mdd-request-actions-title{margin:13px 4px 9px;font-size:22px;line-height:1.5;font-weight:900;color:#103b35}
-#mddRideRequestPage .mdd-request-actions{grid-template-columns:minmax(0,1fr);gap:9px}
-#mddRideRequestPage .mdd-request-accept{min-height:64px;justify-content:center;position:relative;padding:11px 50px 11px 14px;border:0;border-radius:25px;background:linear-gradient(100deg,#00c76b,#00bd65);box-shadow:0 8px 18px #00bd691d;font-size:17px;text-align:center;color:#fff}
-#mddRideRequestPage .mdd-request-accept strong{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:38px;height:38px;flex-basis:38px;border-radius:50%;background:#ffffff2b;font-size:17px}
-#mddRideRequestPage .mdd-request-offer{padding:12px 13px;border:1px solid #e1ebee;border-radius:24px;background:#fff}
-#mddRideRequestPage .mdd-request-offer-title{font-size:15px;gap:9px;margin-bottom:8px;color:#123c36}
-#mddRideRequestPage .mdd-request-offer-title>strong{width:30px;height:30px;flex-basis:30px;border-radius:50%;background:#e9f9f0;color:#00a85b}
-#mddRideRequestPage .mdd-request-offer-input{border-radius:13px;border-color:#e0e9ec;background:#fbfdfc}
-#mddRideRequestPage .mdd-request-offer-input input{padding:10px 11px;font-size:15px}
-#mddRideRequestPage .mdd-request-offer-input span{font-size:12px}
-#mddRideRequestPage .mdd-request-offer textarea{margin-top:7px;padding:8px 10px;font-size:12px;min-height:35px;height:35px;border-color:#e2ebed;border-radius:11px}
-#mddRideRequestPage .mdd-request-offer #mddRequestSendOffer{min-height:40px;margin-top:7px;border:0;border-radius:12px;background:#eaf9f1;color:#079b52;font-size:14px}
-#mddRideRequestPage .mdd-request-skip{min-height:49px;border:1px solid #e2ebee;border-radius:20px;background:#fff;color:#718394;font-size:15px}
-#mddRideRequestPage .mdd-request-skip strong{background:#f1f5f6;color:#7a8d9a;border-radius:50%}
-#mddRequestQuickPrices{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
-#mddRequestQuickPrices button{flex:1;min-width:70px;min-height:37px;padding:6px 9px;border:1px solid #e2ebee;border-radius:13px;background:#f8fbfb;color:#36545b;font:800 13px Tahoma,Arial,sans-serif}
-#mddRequestQuickPrices button:active{background:#e5f8ed;border-color:#00c76b}
-@media(max-height:760px){#mddRideRequestPage .mdd-request-map{height:clamp(155px,24dvh,210px)}#mddRideRequestPage .mdd-request-stats{padding:8px 4px;margin:6px 0}#mddRideRequestPage .mdd-request-price{min-height:80px;padding:10px 15px}#mddRideRequestPage .mdd-request-price strong{font-size:34px}#mddRideRequestPage .mdd-request-stop{padding:8px 0}#mddRideRequestPage .mdd-request-actions-title{font-size:18px;margin-top:8px}#mddRideRequestPage .mdd-request-accept{min-height:53px;font-size:15px}}
-@media(max-width:380px){#mddRideRequestPage .mdd-request-header{grid-template-columns:65px 1fr 43px;padding-inline:9px}#mddRideRequestPage .mdd-request-header h1{font-size:21px}#mddRideRequestPage .mdd-request-content{padding-inline:9px}#mddRideRequestPage .mdd-request-map{height:clamp(175px,26dvh,235px)}#mddRideRequestPage .mdd-request-stats small{font-size:9px}#mddRideRequestPage .mdd-request-stats strong{font-size:14px}#mddRideRequestPage .mdd-request-price strong{font-size:34px}#mddRideRequestPage .mdd-request-stop strong{font-size:15px}#mddRideRequestPage .mdd-request-actions-title{font-size:18px}}
-</style>
-<style id="mdd-request-one-screen-optimization">
-/* Compact vertical rhythm: retain all details and controls while fitting typical phone screens */
-#mddRideRequestPage{overflow-y:auto!important;overscroll-behavior:contain}
-#mddRideRequestPage .mdd-request-content{padding:6px 11px 8px!important}
-#mddRideRequestPage .mdd-request-map{height:clamp(145px,21dvh,205px)!important;border-radius:22px!important}
-#mddRideRequestPage .mdd-map-pin b{width:35px;height:35px;font-size:14px}
-#mddRideRequestPage .mdd-map-pin span{padding:5px 8px;font-size:11px}
-#mddRideRequestPage .mdd-request-stats{margin:6px 0 5px!important;padding:7px 4px!important;border-radius:19px!important}
-#mddRideRequestPage .mdd-request-stats>div{padding:4px 5px!important}
-#mddRideRequestPage .mdd-request-stats small{font-size:10px!important;line-height:1.3!important}
-#mddRideRequestPage .mdd-request-stats strong{font-size:15px!important;line-height:1.25!important;margin-top:2px!important}
-#mddRideRequestPage .mdd-request-price{min-height:70px!important;margin:5px 1px 6px!important;padding:8px 13px!important;border-radius:20px!important}
-#mddRideRequestPage .mdd-request-price small{font-size:11px!important;line-height:1.35!important}
-#mddRideRequestPage .mdd-request-price strong{font-size:32px!important;line-height:1!important}
-#mddRideRequestPage .mdd-request-price strong span{font-size:13px!important}
-#mddRideRequestPage .mdd-request-price-tag{padding:6px 9px!important;font-size:11px!important}
-#mddRideRequestPage .mdd-request-route{margin:5px 1px 7px!important;padding:2px 12px!important;border-radius:20px!important}
-#mddRideRequestPage .mdd-request-stop{gap:9px!important;padding:7px 0!important}
-#mddRideRequestPage .mdd-stop-dot,#mddRideRequestPage .mdd-stop-flag{width:34px!important;height:34px!important;flex-basis:34px!important;font-size:14px!important}
-#mddRideRequestPage .mdd-request-stop small{font-size:10px!important;line-height:1.3!important}
-#mddRideRequestPage .mdd-request-stop strong{font-size:15px!important;line-height:1.3!important;margin-top:2px!important}
-#mddRideRequestPage .mdd-request-actions-title{font-size:17px!important;line-height:1.35!important;margin:6px 3px 5px!important}
-#mddRideRequestPage .mdd-request-actions{grid-template-columns:minmax(0,1.4fr) minmax(90px,.6fr)!important;gap:7px!important;align-items:stretch}
-#mddRideRequestPage .mdd-request-accept{grid-column:1/-1;min-height:48px!important;padding:8px 45px 8px 10px!important;border-radius:18px!important;font-size:14px!important}
-#mddRideRequestPage .mdd-request-accept strong{width:30px!important;height:30px!important;right:9px!important;font-size:14px!important}
-#mddRideRequestPage .mdd-request-offer{grid-column:1;grid-row:2;padding:7px 9px!important;border-radius:17px!important;min-width:0}
-#mddRideRequestPage .mdd-request-offer-title{font-size:12px!important;gap:5px!important;margin-bottom:4px!important}
-#mddRideRequestPage .mdd-request-offer-title>strong{width:24px!important;height:24px!important;flex-basis:24px!important}
-#mddRideRequestPage #mddRequestQuickPrices{gap:4px!important;margin-top:4px!important}
-#mddRideRequestPage #mddRequestQuickPrices button{min-width:0!important;min-height:31px!important;padding:4px 3px!important;font-size:11px!important;border-radius:10px!important}
-#mddRideRequestPage .mdd-request-offer-input{margin-top:5px!important}
-#mddRideRequestPage .mdd-request-offer-input input{padding:6px 7px!important;font-size:13px!important;min-width:0}
-#mddRideRequestPage .mdd-request-offer-input span{font-size:10px!important}
-#mddRideRequestPage .mdd-request-offer textarea{min-height:28px!important;height:28px!important;margin-top:4px!important;padding:5px 7px!important;font-size:11px!important}
-#mddRideRequestPage .mdd-request-offer #mddRequestSendOffer{min-height:33px!important;margin-top:4px!important;font-size:12px!important}
-#mddRideRequestPage .mdd-request-skip{grid-column:2;grid-row:2;min-height:42px!important;align-self:stretch;border-radius:16px!important;font-size:13px!important}
-@media(max-height:700px){
- #mddRideRequestPage .mdd-request-header{min-height:52px!important;padding-block:4px!important}
- #mddRideRequestPage .mdd-request-header h1{font-size:20px!important}
- #mddRideRequestPage .mdd-request-map{height:clamp(125px,18dvh,165px)!important}
- #mddRideRequestPage .mdd-request-stats{padding:5px 3px!important;margin:4px 0!important}
- #mddRideRequestPage .mdd-request-price{min-height:60px!important;padding:6px 10px!important}
- #mddRideRequestPage .mdd-request-price strong{font-size:28px!important}
- #mddRideRequestPage .mdd-request-stop{padding:5px 0!important}
- #mddRideRequestPage .mdd-request-actions-title{font-size:15px!important;margin:4px 2px!important}
- #mddRideRequestPage .mdd-request-accept{min-height:42px!important}
-}
-@media(max-width:360px){
- #mddRideRequestPage .mdd-request-content{padding-inline:7px!important}
- #mddRideRequestPage .mdd-request-stats small{font-size:9px!important}
- #mddRideRequestPage .mdd-request-stats strong{font-size:13px!important}
- #mddRideRequestPage .mdd-request-actions{grid-template-columns:minmax(0,1fr) 82px!important}
- #mddRideRequestPage .mdd-request-offer-title{font-size:11px!important}
-}
-</style>
+
+
 <script id="mdd-request-quick-price-buttons">
 (function(){
  function setup(){
