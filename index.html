@@ -2266,6 +2266,12 @@ input,textarea,select{min-width:0;max-width:100%}
 }
 </style>
 <style id="mdd-home-map-visibility-fix">#map{background:#e9eff2;isolation:isolate}#map .leaflet-tile-pane{filter:none;opacity:1}#map .leaflet-tile{filter:none;opacity:1;visibility:visible}</style>
+<style>
+/* Clear A/B labels for pickup and destination markers */
+.route-point-letter{position:absolute;top:-3px;right:-2px;min-width:19px;height:19px;padding:0 3px;border:2px solid #fff;border-radius:11px;display:flex;align-items:center;justify-content:center;font:800 11px/1 Arial,sans-serif;color:#fff;box-shadow:0 1px 5px #0004;box-sizing:border-box;z-index:5}
+.route-point-a{background:#00a957}
+.route-point-b{background:#e53935}
+</style>
 </head>
 <body>
 <div id="mahattatiWelcome" role="dialog" aria-modal="true" aria-label="مرحبا بك في محطتي">
@@ -2855,7 +2861,7 @@ function setDestinationLabel(address){
 async function setUser(latlng,acc=80,requestId=locationRequestId){
   if(requestId!==locationRequestId)return '';
   userLatLng=latlng;
-  const icon=divIcon('<div class="custom-pin user-location"></div>',[28,28],[14,14]);
+  const icon=divIcon('<div class="custom-pin user-location"></div><span class="route-point-letter route-point-a">A</span>',[38,40],[19,20]);
   if(userMarker) map.removeLayer(userMarker);
   userMarker=L.marker(latlng,{icon,zIndexOffset:1200,title:lang==='ar'?'موقع الهاتف الحالي':'Position actuelle du téléphone',alt:lang==='ar'?'علامة موقعك الحالي':'Current location marker',keyboard:true}).addTo(map);
   if(pickupMarker && pickupMarker!==userMarker) map.removeLayer(pickupMarker);
@@ -2932,7 +2938,7 @@ map.on('click',async e=>{
   const selectionRequestId=++mapSelectionRequestId;
   const ll=e.latlng, isPickup=selecting==='pickup';
   if(isPickup && accuracyCircle){map.removeLayer(accuracyCircle);accuracyCircle=null;}
-  const icon=divIcon(`<div class="custom-pin ${isPickup?'green':'red'}"></div>`,[28,28],[14,25]);
+  const icon=divIcon(`<div class="custom-pin ${isPickup?'green':'red'}"></div><span class="route-point-letter ${isPickup?'route-point-a':'route-point-b'}">${isPickup?'A':'B'}</span>`,[38,40],[19,25]);
   if(isPickup){
     if(pickupMarker && pickupMarker!==userMarker) map.removeLayer(pickupMarker);
     pickupMarker=L.marker(ll,{icon,zIndexOffset:1100,title:say('pickup')}).addTo(map);
