@@ -3490,7 +3490,7 @@ async function searchPickupPlaces(){
   if(q.length<2){$('pickupSearchResults').innerHTML='<div class="pickup-search-status">'+(lang==='ar'?'اكتب حرفين على الأقل للبحث':'Saisissez au moins 2 caractères')+'</div>';return;}
   $('pickupSearchResults').innerHTML='<div class="pickup-search-status">'+(lang==='ar'?'جارٍ البحث…':'Recherche…')+'</div>';
   try{
-    const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&accept-language='+(lang==='ar'?'ar':'fr')+'&q='+encodeURIComponent(q);
+    const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&countrycodes=dz&accept-language='+(lang==='ar'?'ar':'fr')+'&q='+encodeURIComponent(q);
     const res=await fetch(url,{headers:{'Accept':'application/json'}});
     if(!res.ok)throw new Error('search');
     const places=await res.json();
