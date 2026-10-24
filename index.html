@@ -2758,7 +2758,7 @@ async function drawSelectedRoute(){
 
   // Try providers sequentially for older in-app browsers and avoid parallel requests to demo servers.
   const routePath = start.lng + ',' + start.lat + ';' + end.lng + ',' + end.lat;
-  const query = '?overview=full&geometries=geojson&steps=true&alternatives=false';
+  const query = '?overview=full&geometries=geojson&steps=false&alternatives=false';
   const providers = [
     'https://router.project-osrm.org/route/v1/driving/' + routePath + query,
     'https://routing.openstreetmap.de/routed-car/route/v1/driving/' + routePath + query
@@ -2775,7 +2775,7 @@ async function drawSelectedRoute(){
       const coords = route.geometry && route.geometry.coordinates;
       if (!Array.isArray(coords) || coords.length < 2 || !Number.isFinite(route.distance) || route.distance <= 0 || !Number.isFinite(route.duration) || route.duration <= 0) throw new Error('Route geometry or metrics are invalid');
       const snapDistances = (data.waypoints || []).map(point => Number(point.distance) || 0);
-      if (snapDistances.some(distance => distance > 250)) throw new Error('Selected point is too far from a mapped road');
+      if (snapDistances.some(distance => distance > 1200)) throw new Error('Selected point is too far from a mapped road');
       const points = coords.map(pair => [pair[1], pair[0]]);
       if (points.some(pair => !Number.isFinite(pair[0]) || !Number.isFinite(pair[1]) || Math.abs(pair[0]) > 90 || Math.abs(pair[1]) > 180)) throw new Error('Invalid route coordinates');
       return { route, points, snapDistances };
