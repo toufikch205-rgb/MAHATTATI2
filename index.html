@@ -1213,6 +1213,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 /* Dedicated trip/map page shown after the destination is selected */
 #tripMapPage{display:none;position:fixed;inset:0;z-index:1200;pointer-events:none;direction:rtl}
 #tripMapPage.open{display:block}
+#tripMapPage .route-summary-badge{position:absolute;z-index:1190;top:38%;left:50%;transform:translateX(-50%);min-width:170px;max-width:calc(100vw - 36px);padding:10px 16px;border:1px solid rgba(0,217,104,.3);border-radius:18px;background:rgba(255,255,255,.96);box-shadow:0 5px 20px #0002;text-align:center;color:#17211a;pointer-events:none;backdrop-filter:blur(8px)}#tripMapPage .route-summary-main{font-size:clamp(17px,4.6vw,23px);font-weight:850;color:#00a94f;line-height:1.4;direction:rtl}#tripMapPage .route-summary-sub{font-size:12px;font-weight:650;color:#68716b;margin-top:2px;direction:rtl}#tripMapPage .route-summary-badge.pending .route-summary-main{color:#525b55;font-size:14px}#tripMapPage .route-summary-badge[hidden]{display:none!important}
 #tripMapPage .trip-top-card{position:absolute;top:calc(12px + env(safe-area-inset-top));left:14px;right:14px;pointer-events:auto;background:#fff;border-radius:32px;padding:12px 18px;box-shadow:0 8px 28px #0002;display:grid;gap:4px}
 #tripMapPage .trip-location-row{display:flex;align-items:center;gap:14px;min-height:62px;font-size:clamp(17px,4.7vw,27px);font-weight:650}
 #tripMapPage .trip-location-row .trip-row-icon{width:36px;flex:0 0 36px;text-align:center;font-size:32px;color:#171717}
@@ -2663,8 +2664,9 @@ input,textarea,select{min-width:0;max-width:100%}
 <div class="trip-location-row"><span class="trip-row-icon">♟</span><span class="trip-row-text" id="tripPagePickup">موقع الانطلاق</span></div>
 <div class="trip-location-row"><span class="trip-row-icon">⚑</span><span class="trip-row-text" id="tripPageDestination">الوجهة</span><button aria-label="تعديل المسار" class="trip-row-action" id="tripPageEdit" type="button">＋</button></div>
 </div>
+<div aria-live="polite" class="route-summary-badge" id="routeSummaryBadge" hidden><div class="route-summary-main" id="routeSummaryMain"></div><div class="route-summary-sub" id="routeSummarySub"></div></div>
 <div class="trip-bottom">
-<div class="fare-card"><button aria-label="تعديل الأجرة" class="fare-edit" id="tripFareEdit" type="button">✎</button><div class="fare-info"><div class="fare-title">رحلة بسعر عادل</div><div class="fare-meta">٤ • ١٠ دقائق</div><div class="fare-amount"><span id="fareValue">500</span> دج</div><div class="fare-sub">رحلات بأجرة معقولة</div></div><div class="fare-car">🚘</div></div>
+<div class="fare-card"><button aria-label="تعديل الأجرة" class="fare-edit" id="tripFareEdit" type="button">✎</button><div class="fare-info"><div class="fare-title">رحلة بسعر عادل</div><div class="fare-meta" id="fareRouteMeta">المسافة والمدة حسب الطريق</div><div class="fare-amount"><span id="fareValue">500</span> دج</div><div class="fare-sub">رحلات بأجرة معقولة</div></div><div class="fare-car">🚘</div></div>
 <div class="suggest-fare"><button aria-label="تقليل الأجرة" class="fare-step" id="fareMinus" type="button">−</button><span>انقر لاقتراح الأجرة المناسبة لك</span><button aria-label="زيادة الأجرة" class="fare-step" id="farePlus" type="button">＋</button></div>
 <div class="trip-bottom-actions"><button aria-label="المرشحات" class="trip-filter" id="tripFilters" type="button">☷</button><button class="trip-search-offers" id="tripSearchOffers" type="button">البحث عن عروض</button><span class="trip-cash">▰</span></div>
 </div>
@@ -2710,6 +2712,30 @@ let mainTileErrors=0, mainFallbackUsed=false;
 baseTiles.on('tileload',()=>{mainTileErrors=0;const n=document.getElementById('mainMapTileNotice');if(n)n.remove();});
 baseTiles.on('tileerror',()=>{mainTileErrors++;if(mainTileErrors>=3&&!mainFallbackUsed){mainFallbackUsed=true;map.removeLayer(baseTiles);baseTiles=L.tileLayer('https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:20,attribution:osmAttribution+' | © CARTO',crossOrigin:true}).addTo(map);baseTiles.on('tileerror',()=>{if(!document.getElementById('mainMapTileNotice')){const n=document.createElement('div');n.id='mainMapTileNotice';n.textContent='تعذر تحميل الخريطة. تأكد من الإنترنت ثم أعد فتح الصفحة.';n.style.cssText='position:absolute;z-index:1000;top:120px;left:12px;right:12px;background:#fff;color:#333;padding:10px;border-radius:12px;font:13px system-ui;box-shadow:0 2px 10px #0002';document.querySelector('.map-wrap')?.appendChild(n);}});}});
 let routeLine=null, routeOutline=null, routeRequestId=0;
+function updateRouteSummary(distanceMeters, durationSeconds, state="ready"){
+  const badge=$('routeSummaryBadge'), main=$('routeSummaryMain'), sub=$('routeSummarySub');
+  if(!badge||!main||!sub)return;
+  badge.hidden=false;
+  badge.classList.toggle('pending',state==='pending');
+  if(state==='pending'){
+    main.textContent=lang==='ar'?'جارٍ حساب المسافة والوقت…':'Calcul de la distance et du temps…';
+    sub.textContent='';
+    return;
+  }
+  if(state==='error'){
+    main.textContent=lang==='ar'?'تعذر حساب المسار':'Itinéraire indisponible';
+    sub.textContent=lang==='ar'?'تحقق من الاتصال وحاول مجددًا':'Vérifiez la connexion puis réessayez';
+    return;
+  }
+  const km=(distanceMeters/1000).toLocaleString(lang==='ar'?'ar-DZ':'fr-FR',{maximumFractionDigits:1});
+  const minutes=Math.max(1,Math.round(durationSeconds/60));
+  const hours=Math.floor(minutes/60), remainder=minutes%60;
+  const timeText=hours>0
+    ? (lang==='ar'?hours+' س '+(remainder?remainder+' د':''):hours+' h '+(remainder?remainder+' min':''))
+    : (lang==='ar'?minutes+' دقيقة':minutes+' min');
+  main.textContent=lang==='ar'?km+' كم • '+timeText:km+' km • '+timeText;
+  sub.textContent=lang==='ar'?'المسافة والمدة حسب الطرق':'Distance et durée par la route';
+}
 async function drawSelectedRoute(){
   const start = pickupMarker?.getLatLng() || userLatLng;
   const end = destMarker?.getLatLng();
@@ -2718,7 +2744,8 @@ async function drawSelectedRoute(){
   // Clear the previous route immediately: never leave a stale route visible.
   if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
   if (routeOutline) { map.removeLayer(routeOutline); routeOutline = null; }
-  if (!start || !end) return;
+  if (!start || !end) { if($('routeSummaryBadge'))$('routeSummaryBadge').hidden=true; return; }
+  updateRouteSummary(0,0,"pending");
 
   const providers = [
     `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=true&alternatives=false`,
@@ -2785,6 +2812,7 @@ async function drawSelectedRoute(){
 
       const km = (route.distance / 1000).toLocaleString(lang === 'ar' ? 'ar-DZ' : 'fr-FR', { maximumFractionDigits: 1 });
       const mins = Math.max(1, Math.round((route.duration || 0) / 60));
+      updateRouteSummary(route.distance, route.duration || mins*60, 'ready');
       const warning = snapDistances.some(distance => distance > 250)
         ? (lang === 'ar' ? ' تنبيه: إحدى النقطتين بعيدة عن الطريق المرسوم؛ راجع موقع العلامة.' : ' Attention : un point est éloigné de la route cartographiée.')
         : '';
@@ -2801,6 +2829,7 @@ async function drawSelectedRoute(){
   }
 
   if (requestId !== routeRequestId) return;
+  updateRouteSummary(0,0,'error');
   toast(lang === 'ar'
     ? 'تعذر حساب مسار الطرق. تحقق من الإنترنت وحرّك النقطتين إلى طريق واضح ثم أعد المحاولة.'
     : 'Impossible de calculer l’itinéraire routier. Vérifiez la connexion et replacez les points sur une route visible.');
