@@ -2740,102 +2740,104 @@ async function drawSelectedRoute(){
   const start = pickupMarker?.getLatLng() || userLatLng;
   const end = destMarker?.getLatLng();
   const requestId = ++routeRequestId;
-
-  // Clear the previous route immediately: never leave a stale route visible.
   if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
   if (routeOutline) { map.removeLayer(routeOutline); routeOutline = null; }
-  if (!start || !end) { if($('routeSummaryBadge'))$('routeSummaryBadge').hidden=true; return; }
-  updateRouteSummary(0,0,"pending");
+  if (!start || !end) {
+    if ($('routeSummaryBadge')) $('routeSummaryBadge').hidden = true;
+    return;
+  }
+  updateRouteSummary(0, 0, 'pending');
 
   const routePath = `${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=true&alternatives=false`;
   const providers = [
     `https://router.project-osrm.org/route/v1/driving/${routePath}`,
-    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${routePath}`,
-    `https://router.project-osrm.org/route/v1/driving/${routePath}`,
     `https://routing.openstreetmap.de/routed-car/route/v1/driving/${routePath}`
   ];
-
-  for (const url of providers) {
-    if (requestId !== routeRequestId) return;
+  const controllers = [];
+  const fetchRoute = async (url) => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
+    controllers.push(controller);
+    const timer = setTimeout(() => controller.abort(), 8500);
     try {
-      // Keep the timeout active until the response body has also been read.
       const response = await fetch(url, {
         signal: controller.signal,
-        headers: { Accept: 'application/json' }
+        headers: { Accept: 'application/json' },
+        cache: 'no-store'
       });
       if (!response.ok) throw new Error(`Routing service HTTP ${response.status}`);
       const data = await response.json();
-      if (requestId !== routeRequestId) return;
       if (data.code !== 'Ok' || !Array.isArray(data.routes) || !data.routes.length) {
         throw new Error('No road route returned');
       }
-
       const route = data.routes[0];
       const coords = route.geometry?.coordinates;
-      if (!Array.isArray(coords) || coords.length < 2 || !Number.isFinite(route.distance) || route.distance <= 0) {
-        throw new Error('Route geometry is missing or invalid');
+      if (!Array.isArray(coords) || coords.length < 2 ||
+          !Number.isFinite(route.distance) || route.distance <= 0 ||
+          !Number.isFinite(route.duration) || route.duration <= 0) {
+        throw new Error('Route geometry or metrics are invalid');
       }
-
-      // Reject points snapped implausibly far from the requested locations.
       const snapDistances = (data.waypoints || []).map(point => Number(point.distance) || 0);
-      if (snapDistances.some(distance => distance > 1000)) {
-        throw new Error('A route point is over 1 km from a mapped road');
-      }
+      if (snapDistances.some(distance => distance > 1000)) throw new Error('Route point too far from a mapped road');
       const points = coords.map(([lng, lat]) => [lat, lng]);
-      if (points.some(([lat, lng]) => !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)) {
-        throw new Error('Invalid route coordinates');
-      }
-
-      // Draw only the route geometry returned by the road-routing engine.
-      routeOutline = L.polyline(points, {
-        color: '#ffffff', weight: 11, opacity: .98,
-        lineCap: 'round', lineJoin: 'round', interactive: false
-      }).addTo(map);
-      routeLine = L.polyline(points, {
-        color: '#00D968', weight: 6, opacity: 1,
-        lineCap: 'round', lineJoin: 'round', interactive: false
-      }).addTo(map);
-
-      // Keep the road route below the A/B markers so both endpoints stay visible.
-      routeOutline.bringToFront();
-      routeLine.bringToFront();
-      if (pickupMarker) pickupMarker.setZIndexOffset(1200);
-      if (destMarker) destMarker.setZIndexOffset(1300);
-
-      // Frame both endpoints and the complete road geometry in the map viewport.
-      const routeBounds = routeLine.getBounds();
-      if (pickupMarker) routeBounds.extend(pickupMarker.getLatLng());
-      if (destMarker) routeBounds.extend(destMarker.getLatLng());
-      map.fitBounds(routeBounds.pad(.22), {
-        maxZoom: mode === 'intercity' ? 10 : 16,
-        animate: true
-      });
-
-      const km = (route.distance / 1000).toLocaleString(lang === 'ar' ? 'ar-DZ' : 'fr-FR', { maximumFractionDigits: 1 });
-      const mins = Math.max(1, Math.round((route.duration || 0) / 60));
-      updateRouteSummary(route.distance, route.duration || mins*60, 'ready');
-      const warning = snapDistances.some(distance => distance > 250)
-        ? (lang === 'ar' ? ' تنبيه: إحدى النقطتين بعيدة عن الطريق المرسوم؛ راجع موقع العلامة.' : ' Attention : un point est éloigné de la route cartographiée.')
-        : '';
-      toast(lang === 'ar'
-        ? `تم رسم مسار الطرق: ${km} كم تقريبًا • ${mins} دقيقة${warning}`
-        : `Itinéraire routier : env. ${km} km • ${mins} min${warning}`);
-      return;
-    } catch (error) {
-      if (requestId !== routeRequestId) return;
-      // Try the backup provider. Never replace a failed road route with a straight line.
+      if (points.some(([lat, lng]) => !Number.isFinite(lat) || !Number.isFinite(lng) ||
+          Math.abs(lat) > 90 || Math.abs(lng) > 180)) throw new Error('Invalid route coordinates');
+      return { route, points, snapDistances };
     } finally {
       clearTimeout(timer);
     }
-  }
+  };
 
+  let result;
+  try {
+    // Race independent providers: the first valid road route wins.
+    result = await Promise.any(providers.map(fetchRoute));
+  } catch (error) {
+    if (requestId !== routeRequestId) return;
+    updateRouteSummary(0, 0, 'error');
+    toast(lang === 'ar'
+      ? 'تعذر حساب المسار الآن. تحقق من الإنترنت وحاول مجددًا.'
+      : 'Itinéraire indisponible. Vérifiez Internet et réessayez.');
+    return;
+  } finally {
+    controllers.forEach(controller => controller.abort());
+  }
   if (requestId !== routeRequestId) return;
-  updateRouteSummary(0,0,'error');
+
+  const { route, points, snapDistances } = result;
+  routeOutline = L.polyline(points, {
+    color: '#ffffff', weight: 11, opacity: .98,
+    lineCap: 'round', lineJoin: 'round', interactive: false
+  }).addTo(map);
+  routeLine = L.polyline(points, {
+    color: '#00D968', weight: 6, opacity: 1,
+    lineCap: 'round', lineJoin: 'round', interactive: false
+  }).addTo(map);
+  routeOutline.bringToFront();
+  routeLine.bringToFront();
+  if (pickupMarker) pickupMarker.setZIndexOffset(1200);
+  if (destMarker) destMarker.setZIndexOffset(1300);
+
+  const routeBounds = routeLine.getBounds();
+  if (pickupMarker) routeBounds.extend(pickupMarker.getLatLng());
+  if (destMarker) routeBounds.extend(destMarker.getLatLng());
+  map.fitBounds(routeBounds.pad(.22), {
+    maxZoom: mode === 'intercity' ? 10 : 16,
+    animate: true
+  });
+
+  updateRouteSummary(route.distance, route.duration, 'ready');
+  const km = (route.distance / 1000).toLocaleString(
+    lang === 'ar' ? 'ar-DZ' : 'fr-FR', { maximumFractionDigits: 1 }
+  );
+  const mins = Math.max(1, Math.round(route.duration / 60));
+  const warning = snapDistances.some(distance => distance > 250)
+    ? (lang === 'ar'
+      ? ' تنبيه: إحدى النقطتين بعيدة عن الطريق المرسوم؛ راجع موقع العلامة.'
+      : ' Attention : un point est éloigné de la route cartographiée.')
+    : '';
   toast(lang === 'ar'
-    ? 'تعذر حساب مسار الطرق. تحقق من الإنترنت وحرّك النقطتين إلى طريق واضح ثم أعد المحاولة.'
-    : 'Impossible de calculer l’itinéraire routier. Vérifiez la connexion et replacez les points sur une route visible.');
+    ? `تم رسم المسار: ${km} كم تقريبًا • ${mins} دقيقة${warning}`
+    : `Itinéraire : env. ${km} km • ${mins} min${warning}`);
 }
 
 let tileErrorShown=false;baseTiles.on('tileerror',()=>{if(!tileErrorShown){tileErrorShown=true;const msg=lang==='ar'?'تعذر تحميل بعض أجزاء الخريطة. تحقق من الإنترنت ثم أعد فتح الصفحة.':'Certaines tuiles de la carte n’ont pas chargé. Vérifiez Internet puis réessayez.';$('mapNote').textContent=msg;$('mapNote').classList.add('visible');}});baseTiles.on('tileload',()=>{tileErrorShown=false;});
