@@ -2747,6 +2747,9 @@ async function drawSelectedRoute(){
   // Never substitute the phone GPS position for an explicitly selected pickup.
   const start = pickupMarker ? pickupMarker.getLatLng() : null;
   const end = destMarker ? destMarker.getLatLng() : null;
+  // A changed endpoint pair starts a new trip: recalculate the suggested fare unless the user edits it for this route.
+  const fareRouteKey = start && end ? [start.lat,start.lng,end.lat,end.lng].map(n=>Number(n).toFixed(5)).join('|') : '';
+  if (fareRouteKey !== lastFareRouteKey) { lastFareRouteKey = fareRouteKey; fareWasManuallyEdited = false; }
   const requestId = ++routeRequestId;
   if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
   if (routeOutline) { map.removeLayer(routeOutline); routeOutline = null; }
@@ -3150,6 +3153,7 @@ $('requestSentOkay').addEventListener('click',()=>{$('requestSentModal').classLi
 $('requestSentModal').addEventListener('click',e=>{if(e.target===$('requestSentModal')){$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');}});
 let proposedFare=500;
 let fareWasManuallyEdited=false;
+let lastFareRouteKey='';
 function setProposedFare(value){
  proposedFare=Math.max(0,Math.round(Number(value)||0));
  $('fareValue').textContent=String(proposedFare);
@@ -3168,6 +3172,7 @@ function openSuggestFarePage(){
 }
 function closeSuggestFarePage(){ setProposedFare($('sfPrice').value);$('suggestFarePage').classList.remove('open');$('suggestFarePage').setAttribute('aria-hidden','true'); }
 $('sfClose').addEventListener('click',closeSuggestFarePage);
+$('sfPrice').addEventListener('input',()=>{fareWasManuallyEdited=true;const value=Number($('sfPrice').value);if(Number.isFinite(value)&&value>0){proposedFare=Math.round(value);$('fareValue').textContent=String(proposedFare);if($('sfAutoPrice'))$('sfAutoPrice').textContent=String(proposedFare);}});
 
 let sfPassengerCount=1, sfDepartureMode='now';
 function setSfDepartureMode(mode){
