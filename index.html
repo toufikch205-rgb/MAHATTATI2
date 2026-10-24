@@ -3509,6 +3509,8 @@ if(!channel)channel=client.channel('mahattati-driver-requests').on('postgres_cha
 }catch(e){status('تعذّر تحميل الطلبات: '+(e.message||'خطأ غير معروف'));}finally{refreshing=false;}}
 async function accept(id,btn){btn.disabled=true;btn.textContent='جارٍ القبول…';try{const {data,error}=await client.rpc('accept_trip_request',{p_request_id:id});if(error)throw error;status('تم قبول الطلب.');await loadRequests();document.dispatchEvent(new CustomEvent('mahattati:trip-accepted',{detail:data}));}catch(e){status('لم يتم قبول الطلب: '+(e.message||'ربما قبله سائق آخر.'));btn.disabled=false;btn.textContent='قبول الطلب';await loadRequests();}}
 window.mahattatiLoadDriverRequests=loadRequests;
+// Reliable fallback: refresh the driver queue even if realtime delivery is delayed.
+if(!window.__mahattatiDriverPoll){window.__mahattatiDriverPoll=setInterval(()=>{const dashboard=document.getElementById('driverDashboardPage');if(dashboard?.classList.contains('open'))loadRequests();},5000);}
 client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_IN'&&session?.user)setTimeout(()=>{mount();loadRequests()},250);if(event==='SIGNED_OUT'){stopLocation();if(channel){client.removeChannel(channel);channel=null;}const l=document.getElementById('mldList');if(l)l.innerHTML='';status('سجّل الدخول بحساب السائق.')}});
 document.addEventListener('click',e=>{if(e.target.closest('#driverDashboardPage .mdd-nav')||e.target.closest('#driverDashboardPage .mdd-view'))setTimeout(()=>{mount();loadRequests()},300)});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{mount();loadRequests()});else{mount();loadRequests();}
