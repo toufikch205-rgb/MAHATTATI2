@@ -3000,8 +3000,24 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
    return {id:data.id,createdAt:Date.parse(data.created_at)||Date.now(),status:data.status};
  };
  window.mahattatiLogout=async()=>{if(client){const {error}=await client.auth.signOut();if(error)throw error;}};
+ let passengerTripChannel=null;
+ async function startPassengerRealtime(user){
+   if(!client||!user)return;
+   if(passengerTripChannel){try{await client.removeChannel(passengerTripChannel)}catch(e){}passengerTripChannel=null;}
+   passengerTripChannel=client.channel('mahattati-passenger-'+user.id)
+     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'trip_requests',filter:'user_id=eq.'+user.id},async payload=>{
+       try{
+         const row=payload.new||{};
+         const labels={pending:'قيد الانتظار',accepted:'قبل السائق طلبك',in_progress:'الرحلة جارية',completed:'اكتملت الرحلة',cancelled:'تم إلغاء الطلب'};
+         const label=labels[row.status]||'تم تحديث حالة الطلب';
+         await loadCloudRequests(user);
+         try{if(typeof window.showRequestHistory==='function')window.showRequestHistory();}catch(e){}
+         try{if(typeof window.toast==='function')window.toast(label);else console.info('Mahattati:',label);}catch(e){}
+       }catch(e){console.warn('Passenger realtime update failed:',e);}
+     }).subscribe();
+ }
  async function enterAuthenticated(user,name){
-   try{setDisplayName(name||user?.user_metadata?.full_name||'',user?.email||'');if(user){try{await syncProfile(user,name)}catch(err){console.warn('Profile sync failed:',err)}try{await loadCloudRequests(user)}catch(err){console.warn('Trip history sync failed:',err)}}}
+   try{setDisplayName(name||user?.user_metadata?.full_name||'',user?.email||'');if(user){try{await syncProfile(user,name)}catch(err){console.warn('Profile sync failed:',err)}try{await loadCloudRequests(user)}catch(err){console.warn('Trip history sync failed:',err)}try{startPassengerRealtime(user)}catch(err){console.warn('Realtime setup failed:',err)}}}
    finally{closeAuth();const welcome=$('mahattatiWelcome');if(welcome){welcome.hidden=true;document.body.style.overflow='';try{sessionStorage.setItem('mahattati_welcome_seen','1')}catch(e){}}}
  }
  $('mahattatiAuthForm').addEventListener('submit',async e=>{
@@ -3040,7 +3056,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
      say(friendly);
    }finally{busy=false;$('mauthSubmit').disabled=false;$('mauthSwitch').disabled=false;}
  });
- if(client){client.auth.getSession().then(async({data,error})=>{if(error)console.warn(error.message);if(data?.session?.user){const u=data.session.user;await enterAuthenticated(u);}});client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){/* Keep local display name; cloud access is revoked by the session. */}});}
+ if(client){client.auth.getSession().then(async({data,error})=>{if(error)console.warn(error.message);if(data?.session?.user){const u=data.session.user;await enterAuthenticated(u);}});client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){if(passengerTripChannel){client.removeChannel(passengerTripChannel);passengerTripChannel=null;}/* Keep local display name; cloud access is revoked by the session. */}else if(event==='SIGNED_IN'&&session?.user){setTimeout(()=>enterAuthenticated(session.user),0);}});}
 })();
 </script>
 
