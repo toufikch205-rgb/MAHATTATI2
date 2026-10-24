@@ -1168,10 +1168,10 @@ body.mdd-request-nav-pinned #driverDashboardPage .mdd-nav, body.mdd-request-nav-
 
 <style id="mddRealRequestMapStyles">
 #mddRideRequestPage .mdd-request-map{position:relative!important;overflow:hidden!important;background:#edf5f2!important;padding:0!important;isolation:isolate}
-#mddRideRequestPage .mdd-request-map #map{position:relative!important;inset:auto!important;display:block!important;width:100%!important;height:215px!important;min-height:215px!important;border-radius:inherit!important;z-index:1!important}
-#mddRideRequestPage .mdd-request-map .leaflet-control-attribution{font-size:8px!important}
-#mddRideRequestPage .mdd-request-map .leaflet-control-container{display:block!important}
-#mddRideRequestPage .mdd-request-map .leaflet-control-zoom{display:none!important}
+
+
+
+
 #mddRideRequestPage .mdd-request-map .mdd-map-grid,#mddRideRequestPage .mdd-request-map .mdd-map-road,#mddRideRequestPage .mdd-request-map .mdd-map-park,#mddRideRequestPage .mdd-request-map .mdd-map-route,#mddRideRequestPage .mdd-request-map .mdd-map-pin,#mddRideRequestPage .mdd-request-map .mdd-map-caption{display:none!important}
 </style>
 </head>
@@ -3908,20 +3908,17 @@ input,textarea,select{min-width:0;max-width:100%}
  #mddRideRequestPage .mdd-request-actions{grid-template-columns:minmax(0,1fr) 116px}
 }
 </style>
-<style id="mdd-real-map-visible-fix-v2">
-/* Keep the existing map visible without overriding the canonical responsive map height. */
-#mddRideRequestPage .mdd-request-map #map{display:block!important;visibility:visible!important;opacity:1!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;z-index:2!important}
-#mddRideRequestPage .mdd-request-map .leaflet-pane,#mddRideRequestPage .mdd-request-map .leaflet-tile-pane,#mddRideRequestPage .mdd-request-map .leaflet-tile-container{visibility:visible!important;opacity:1!important}
-</style>
-<script id="mdd-real-map-visible-fix-v2-js">(function(){function refresh(){var page=document.getElementById('mddRideRequestPage'),target=page&&page.querySelector('.mdd-request-map'),el=document.getElementById('map');if(!page||!target||!el||!page.classList.contains('open'))return;target.style.removeProperty('height');target.style.removeProperty('min-height');el.style.display='block';el.style.visibility='visible';el.style.opacity='1';if(window.map){setTimeout(function(){try{window.map.invalidateSize({pan:false});window.map.eachLayer(function(layer){if(layer.redraw)layer.redraw()})}catch(e){}},100)}}document.addEventListener('click',function(e){if(e.target.closest('#driverDashboardPage .mdd-view')){setTimeout(refresh,50);setTimeout(refresh,350)}},true);window.addEventListener('resize',refresh);})();</script>
 
-<style id="mdd-independent-real-map-css">
-#mddRideRequestPage .mdd-request-map{position:relative!important;padding:0!important;overflow:hidden!important;background:#e9eff2!important;isolation:isolate}
-#mddRideRequestPage #mddRequestLeafletMap{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;display:block!important;visibility:visible!important;opacity:1!important;z-index:3!important;border-radius:inherit;overflow:hidden}
+
+
+<style id="mdd-request-map-canonical-css">
+/* Canonical map rules: the driver request page owns its own Leaflet map. */
+#mddRideRequestPage .mdd-request-map{position:relative!important;isolation:isolate;overflow:hidden!important;padding:0!important;background:#e9eff2!important}
+#mddRideRequestPage #mddRequestLeafletMap{position:absolute!important;inset:0!important;display:block!important;width:100%!important;height:100%!important;min-height:0!important;visibility:visible!important;opacity:1!important;z-index:1!important;border-radius:inherit;overflow:hidden}
 #mddRideRequestPage #mddRequestLeafletMap.leaflet-container{background:#e9eff2!important;font-family:system-ui,Arial,sans-serif}
-#mddRideRequestPage #mddRequestLeafletMap .leaflet-tile-pane{filter:none!important;opacity:1!important}
-#mddRideRequestPage #mddRequestLeafletMap .leaflet-tile{filter:none!important;opacity:1!important}
+#mddRideRequestPage #mddRequestLeafletMap .leaflet-tile-pane,#mddRideRequestPage #mddRequestLeafletMap .leaflet-tile{filter:none!important;opacity:1!important;visibility:visible!important}
 #mddRideRequestPage #mddRequestLeafletMap .leaflet-control-attribution{font-size:9px!important}
+#mddRideRequestPage #mddRequestLeafletMap .leaflet-control-zoom{display:none!important}
 </style>
 <script id="mdd-independent-real-map-js">
 (function(){
