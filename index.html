@@ -3333,37 +3333,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 #menuBackdrop.driver-menu-open .side-menu{z-index:6501!important;visibility:visible!important;pointer-events:auto!important}
 #menuBackdrop.driver-menu-open .menu-partner{cursor:pointer!important}
 </style>
-\n<script id="mdd-request-reopen-fix">
-(function(){
-  function byId(id){return document.getElementById(id)}
-  function openRequestPage(card){
-    var page=byId('mddRideRequestPage'); if(!page) return;
-    if(card && typeof window.mddPopulateRequest==='function') { try{window.mddPopulateRequest(card)}catch(e){console.error(e)} }
-    page.classList.add('open'); page.setAttribute('aria-hidden','false');
-    page.style.setProperty('display','block','important');
-    page.style.setProperty('visibility','visible','important');
-    page.style.setProperty('opacity','1','important');
-    document.body.style.overflow='hidden'; page.scrollTop=0;
-  }
-  function closeRequestPage(){
-    var page=byId('mddRideRequestPage'); if(page){page.classList.remove('open');page.setAttribute('aria-hidden','true');page.style.setProperty('display','none','important');page.style.removeProperty('visibility');page.style.removeProperty('opacity');}
-    document.body.style.overflow='';
-    var dash=byId('driverDashboardPage');
-    if(dash){
-      dash.querySelectorAll('.mdd-heading,#mddOnlineHint,.mdd-rides').forEach(function(el){el.hidden=false;el.style.removeProperty('display');});
-    }
-    if(typeof window.mddShowTab==='function'){try{window.mddShowTab('طلبات الركوب')}catch(e){}}
-  }
-  document.addEventListener('click',function(e){
-    var back=e.target.closest('#mddRequestBack');
-    if(back){e.preventDefault();e.stopImmediatePropagation();closeRequestPage();return;}
-    /* Navigation buttons only switch tabs. They must never open request details. */
-    var view=e.target.closest('#driverDashboardPage .mdd-view');
-    if(view){var card=view.closest('.mdd-ride');if(card){e.preventDefault();e.stopImmediatePropagation();openRequestPage(card);}}
-  },true);
-  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&byId('mddRideRequestPage')?.classList.contains('open'))closeRequestPage()});
-})();
-</script>
+
 
 <style id="mahattati-driver-earnings-page">
 #driverDashboardPage .mdd-earnings-page[hidden]{display:none!important}
@@ -3891,32 +3861,7 @@ input,textarea,select{min-width:0;max-width:100%}
 #mddRideRequestPage[aria-hidden="true"]{display:none!important}
 #mddRideRequestPage.open[aria-hidden="false"]{display:block!important}
 </style>
-<script id="mdd-ride-request-navigation-fix">
-(function(){
-  function openRideRequest(){
-    const page=document.getElementById('mddRideRequestPage');
-    if(!page)return;
-    page.classList.add('open');
-    page.setAttribute('aria-hidden','false');
-    page.style.setProperty('display','block','important');
-    page.style.setProperty('z-index','9000','important');
-    document.querySelectorAll('#driverDashboardPage .mdd-nav button').forEach(function(b){
-      const active=b.dataset.tab==='الطلب'; b.classList.toggle('active',active); b.setAttribute('aria-current',active?'page':'false');
-    });
-    const wallet=document.getElementById('mddWalletPage');
-    if(wallet){wallet.hidden=true;wallet.classList.remove('mdd-wallet-open');wallet.style.setProperty('display','none','important');wallet.setAttribute('aria-hidden','true');}
-    const dashboard=document.getElementById('driverDashboardPage');
-    if(dashboard){['.mdd-heading','#mddOnlineHint','.mdd-rides'].forEach(function(sel){const el=dashboard.querySelector(sel);if(el)el.hidden=true;});}
-    try{if(typeof mddPopulateRequest==='function')mddPopulateRequest();}catch(e){console.error('Request details populate:',e);}
-  }
-  /* Do not intercept the bottom navigation here: request details open only
-     from the explicit .mdd-view button on an individual ride card. */
-  document.addEventListener('DOMContentLoaded',function(){
-    const back=document.getElementById('mddRequestBack');
-    if(back)back.addEventListener('click',function(){const page=document.getElementById('mddRideRequestPage');if(page){page.classList.remove('open');page.setAttribute('aria-hidden','true');page.style.setProperty('display','none','important');}const nav=document.querySelector('#driverDashboardPage .mdd-nav button[data-tab="طلبات الركوب"]');if(nav)nav.click();});
-  });
-})();
-</script>
+
 
 
 <style id="mdd-request-reference-design-90">
@@ -4044,12 +3989,7 @@ input,textarea,select{min-width:0;max-width:100%}
 </script>
 
 
-<style id="mdd-real-map-visible-fix-v2">
-#mddRideRequestPage .mdd-request-map{height:215px!important;min-height:215px!important;display:block!important;position:relative!important;overflow:hidden!important;background:#eaf2ef!important}
-#mddRideRequestPage .mdd-request-map #map{display:block!important;visibility:visible!important;opacity:1!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;z-index:2!important}
-#mddRideRequestPage .mdd-request-map .leaflet-pane,#mddRideRequestPage .mdd-request-map .leaflet-tile-pane,#mddRideRequestPage .mdd-request-map .leaflet-tile-container{visibility:visible!important;opacity:1!important}
-</style>
-<script id="mdd-real-map-visible-fix-v2-js">(function(){function refresh(){var page=document.getElementById('mddRideRequestPage'),target=page&&page.querySelector('.mdd-request-map'),el=document.getElementById('map');if(!page||!target||!el||!page.classList.contains('open'))return;target.style.height='215px';target.style.minHeight='215px';el.style.display='block';el.style.visibility='visible';el.style.opacity='1';if(window.map){setTimeout(function(){try{window.map.invalidateSize({pan:false});window.map.eachLayer(function(layer){if(layer.redraw)layer.redraw()})}catch(e){}},100)}}document.addEventListener('click',function(e){if(e.target.closest('#driverDashboardPage .mdd-view')){setTimeout(refresh,50);setTimeout(refresh,350)}},true);window.addEventListener('resize',refresh);})();</script>
+
 
 <style id="mdd-independent-real-map-css">
 #mddRideRequestPage .mdd-request-map{position:relative!important;padding:0!important;overflow:hidden!important;background:#e9eff2!important;isolation:isolate}
