@@ -1960,9 +1960,8 @@ function showTripMapPage(){document.body.classList.add('trip-page-active');const
 function hideTripMapPage(){const page=$('tripMapPage');page.classList.remove('open');page.setAttribute('aria-hidden','true');document.body.classList.remove('trip-page-active');setTimeout(()=>map.invalidateSize(),80);}
 $('tripPageBack').onclick=hideTripMapPage;$('tripPageEdit').onclick=()=>{hideTripMapPage();openRouteModal();};$('tripFareEdit').onclick=openSuggestFarePage;$('tripFilters').onclick=()=>openTripOptions();
 let requestSubmissionInProgress=false;
-function submitTripRequest(){
+async function submitTripRequest(){
  const modal=$('requestSentModal');
- // Guard against rapid taps while validation/storage is running and against a second open confirmation.
  if(requestSubmissionInProgress||modal.classList.contains('open')) return;
  const rawPickup=($('tripPagePickup')?.textContent||'').trim();
  const rawDestination=($('tripPageDestination')?.textContent||'').trim();
@@ -1970,54 +1969,50 @@ function submitTripRequest(){
  const destinationInput=($('destInput')?.value||$('modalDestInput')?.value||'').trim();
  const pickup=rawPickup&&rawPickup!=='موقع الانطلاق'&&rawPickup!=='نقطة الانطلاق'?rawPickup:(pickupInput||($('userLatLng')?'موقعي الحالي':'موقعي الحالي'));
  const destination=rawDestination&&rawDestination!=='الوجهة'?rawDestination:destinationInput;
- if(!destination||destination==='الوجهة'){
-  toast(lang==='ar'?'حدّد وجهتك قبل إرسال الطلب.':'Choisissez une destination avant d’envoyer la demande.');
-  return;
- }
+ if(!destination||destination==='الوجهة'){toast(lang==='ar'?'حدّد وجهتك قبل إرسال الطلب.':'Choisissez une destination avant d’envoyer la demande.');return;}
  const fareInput=$('sfPrice')?.value;
  const fare=Number(fareInput!==undefined&&fareInput!==''?fareInput:proposedFare);
- if(!Number.isFinite(fare)||fare<=0){
-  toast(lang==='ar'?'أدخل أجرة صحيحة أكبر من صفر.':'Saisissez un tarif valide supérieur à zéro.');
-  return;
- }
+ if(!Number.isFinite(fare)||fare<=0){toast(lang==='ar'?'أدخل أجرة صحيحة أكبر من صفر.':'Saisissez un tarif valide supérieur à zéro.');return;}
  let departure='الآن';
  if(typeof sfDepartureMode!=='undefined'){
   if(sfDepartureMode==='half') departure='بعد نصف ساعة';
   else if(sfDepartureMode==='custom'){
    const selectedTime=$('sfCustomTime')?.value;
    const selectedTimestamp=selectedTime?new Date(selectedTime).getTime():NaN;
-   if(!selectedTime||!Number.isFinite(selectedTimestamp)){
-    toast('يرجى تحديد وقت الانطلاق');return;
-   }
-   if(selectedTimestamp<=Date.now()){
-    toast('اختر وقتًا قادمًا للانطلاق');return;
-   }
+   if(!selectedTime||!Number.isFinite(selectedTimestamp)||selectedTimestamp<=Date.now()){toast('يرجى تحديد وقت قادم للانطلاق');return;}
    departure=new Date(selectedTimestamp).toLocaleString('ar-DZ',{dateStyle:'short',timeStyle:'short'});
   }
  }
+ const client=window.mahattatiSupabase;
+ if(!client){toast('تعذّر الاتصال بقاعدة البيانات. أعد تحميل الصفحة وحاول مجددًا.');return;}
+ const {data:{user},error:authError}=await client.auth.getUser();
+ if(authError||!user){toast('سجّل الدخول أولاً، ثم أعد إرسال طلب الرحلة.');if(window.mahattatiOpenAuth)window.mahattatiOpenAuth();return;}
  requestSubmissionInProgress=true;
+ const sendButton=$('tripSearchOffers');if(sendButton){sendButton.disabled=true;sendButton.setAttribute('aria-busy','true');}
  try{
-  let requests=[];
-  const stored=localStorage.getItem('mahattati_requests')||'[]';
-  const parsed=JSON.parse(stored);
-  if(Array.isArray(parsed)) requests=parsed;
-  const now=Date.now();
+  const p=typeof pickupMarker!=='undefined'&&pickupMarker?.getLatLng?pickupMarker.getLatLng():null;
+  const d=typeof destMarker!=='undefined'&&destMarker?.getLatLng?destMarker.getLatLng():null;
   const request={
-   id:'req_'+now+'_'+Math.random().toString(36).slice(2,9),
    pickup,destination,price:Math.round(fare),
    passengers:Math.min(8,Math.max(1,Number(tripPassengerCount||sfPassengerCount)||1)),
-   comment:String(tripCommentText||'').trim().slice(0,300),
-   departure,status:'جارية',createdAt:now,mode
+   comment:String(tripCommentText||'').trim().slice(0,300),departure,status:'pending',
+   createdAt:Date.now(),mode,
+   pickupLatitude:p?Number(p.lat):null,pickupLongitude:p?Number(p.lng):null,
+   destinationLatitude:d?Number(d.lat):null,destinationLongitude:d?Number(d.lng):null,
+   serviceType:(window.mahattatiSelectedService||'economy')
   };
-  requests.unshift(request);
-  // Keep browser storage bounded so repeated demo use cannot grow it indefinitely.
-  localStorage.setItem('mahattati_requests',JSON.stringify(requests.slice(0,200)));
+  const saved=await window.mahattatiSaveTripRequest(request);
+  request.id=saved.id;request.createdAt=saved.createdAt;request.status='قيد الانتظار';
+  let requests=[];try{const parsed=JSON.parse(localStorage.getItem('mahattati_requests')||'[]');if(Array.isArray(parsed))requests=parsed;}catch(e){}
+  requests.unshift(request);localStorage.setItem('mahattati_requests',JSON.stringify(requests.slice(0,200)));
   proposedFare=request.price;
   modal.classList.add('open');modal.setAttribute('aria-hidden','false');
+  toast('تم إرسال الطلب للسائقين القريبين.');
  }catch(e){
-  toast('تعذر حفظ الطلب في هذا المتصفح. تحقق من إعدادات الخصوصية ومساحة التخزين.');
+  console.error('Mahattati trip submission failed:',e);
+  toast(e?.message||'تعذّر إرسال الطلب إلى قاعدة البيانات. حاول مجددًا.');
  }finally{
-  requestSubmissionInProgress=false;
+  requestSubmissionInProgress=false;if(sendButton){sendButton.disabled=false;sendButton.removeAttribute('aria-busy');}
  }
 }
 $('tripSearchOffers').onclick=submitTripRequest;
@@ -2973,9 +2968,37 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
  $('mauthClose').addEventListener('click',closeAuth);overlay.addEventListener('click',e=>{if(e.target===overlay)closeAuth()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&overlay.classList.contains('open'))closeAuth()});$('mauthSwitch').addEventListener('click',()=>setMode(mode==='login'?'signup':'login'));
  function setDisplayName(name,email=''){const chosen=(name||'').trim()||email.split('@')[0]||'مستخدم';try{localStorage.setItem('mahattati_profile_name',chosen)}catch(e){};['menuUsername','masProfileName'].forEach(id=>{const el=$(id);if(el)el.textContent=chosen;});}
  async function syncProfile(user,name){if(!client||!user)return;const displayName=(name||user.user_metadata?.full_name||user.email?.split('@')[0]||'مستخدم').trim();const {error}=await client.from('user_profiles').upsert({id:user.id,display_name:displayName,updated_at:new Date().toISOString()},{onConflict:'id'});if(error)console.warn('Profile sync failed:',error.message);setDisplayName(displayName,user.email||'');}
- function normalizeCloudRequest(row){const d=row.details||{};return {id:row.id,pickup:row.from_location||d.pickup||'',destination:row.to_location||d.destination||'',price:row.fare??d.price??0,passengers:d.passengers||1,comment:d.comment||'',departure:d.departure||'',status:row.status==='completed'?'مكتملة':row.status==='cancelled'?'ملغاة':row.status==='accepted'?'مقبولة':row.status==='in_progress'?'جارية':'جارية',createdAt:Date.parse(row.created_at)||Date.now(),mode:d.mode||'داخل المدينة'};}
+ function normalizeCloudRequest(row){const d=row.details||{};return {id:row.id,pickup:row.from_location||d.pickup||'',destination:row.to_location||d.destination||'',price:row.fare??d.price??0,passengers:d.passengers||1,comment:d.comment||'',departure:d.departure||'',status:row.status==='completed'?'مكتملة':row.status==='cancelled'?'ملغاة':row.status==='accepted'?'مقبولة':row.status==='in_progress'?'جارية':row.status==='pending'?'قيد الانتظار':'قيد الانتظار',createdAt:Date.parse(row.created_at)||Date.now(),mode:d.mode||'داخل المدينة',driverId:row.driver_id||null};}
  async function loadCloudRequests(user){if(!client||!user)return;const {data,error}=await client.from('trip_requests').select('id,from_location,to_location,status,fare,distance_km,details,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(200);if(error){console.warn('Trip history sync failed:',error.message);return;}const cloud=(data||[]).map(normalizeCloudRequest);let local=[];try{local=JSON.parse(localStorage.getItem('mahattati_requests')||'[]');if(!Array.isArray(local))local=[];}catch(e){}const byId=new Map();cloud.forEach(r=>byId.set(String(r.id),r));local.forEach(r=>{if(!byId.has(String(r.id)))byId.set(String(r.id),r)});const merged=[...byId.values()].sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0)).slice(0,200);try{localStorage.setItem('mahattati_requests',JSON.stringify(merged))}catch(e){}}
- window.mahattatiSaveTripRequest=async request=>{if(!client)return;const {data:{user}}=await client.auth.getUser();if(!user)return;const {error}=await client.from('trip_requests').upsert({user_id:user.id,from_location:String(request.pickup||''),to_location:String(request.destination||''),status:({ 'مكتملة':'completed','ملغاة':'cancelled','مقبولة':'accepted','جارية':'in_progress','pending':'pending' }[String(request.status||'جارية')])||'pending',fare:Number(request.price)||null,distance_km:Number(request.distanceKm)||null,details:{passengers:Number(request.passengers)||1,comment:String(request.comment||''),departure:String(request.departure||''),mode:String(request.mode||'')}} ,{onConflict:'id'});if(error){console.warn('Could not save request to cloud:',error.message);return false;}return true;};
+ window.mahattatiSaveTripRequest=async request=>{
+   if(!client)throw new Error('قاعدة البيانات غير متاحة حالياً.');
+   const {data:{user},error:userError}=await client.auth.getUser();
+   if(userError)throw userError;
+   if(!user)throw new Error('سجّل الدخول أولاً حتى يتم إرسال الطلب للسائقين.');
+   const service=String(request.serviceType||'economy').toLowerCase();
+   const allowed=['economy','comfort','premium','delivery'];
+   const serviceType=allowed.includes(service)?service:'economy';
+   const payload={
+     user_id:user.id,
+     from_location:String(request.pickup||'موقعي الحالي').slice(0,300),
+     to_location:String(request.destination||'').slice(0,300),
+     status:'pending',
+     fare:Number(request.price)||null,
+     distance_km:Number(request.distanceKm)||null,
+     duration_minutes:Number(request.durationMinutes)||null,
+     pickup_latitude:Number.isFinite(Number(request.pickupLatitude))?Number(request.pickupLatitude):null,
+     pickup_longitude:Number.isFinite(Number(request.pickupLongitude))?Number(request.pickupLongitude):null,
+     destination_latitude:Number.isFinite(Number(request.destinationLatitude))?Number(request.destinationLatitude):null,
+     destination_longitude:Number.isFinite(Number(request.destinationLongitude))?Number(request.destinationLongitude):null,
+     service_type:serviceType,
+     expires_at:new Date(Date.now()+15*60*1000).toISOString(),
+     details:{passengers:Number(request.passengers)||1,comment:String(request.comment||'').slice(0,300),departure:String(request.departure||'الآن'),mode:String(request.mode||'داخل المدينة'),serviceType}
+   };
+   if(!payload.to_location)throw new Error('حدّد وجهتك قبل إرسال الطلب.');
+   const {data,error}=await client.from('trip_requests').insert(payload).select('id,created_at,status').single();
+   if(error)throw error;
+   return {id:data.id,createdAt:Date.parse(data.created_at)||Date.now(),status:data.status};
+ };
  window.mahattatiLogout=async()=>{if(client){const {error}=await client.auth.signOut();if(error)throw error;}};
  async function enterAuthenticated(user,name){
    try{setDisplayName(name||user?.user_metadata?.full_name||'',user?.email||'');if(user){try{await syncProfile(user,name)}catch(err){console.warn('Profile sync failed:',err)}try{await loadCloudRequests(user)}catch(err){console.warn('Trip history sync failed:',err)}}}
@@ -3332,26 +3355,41 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 #mahattatiLiveDispatch .mld-card{padding:12px;margin:9px 0;border:1px solid #e5ece6;border-radius:14px;background:#f9fcf9}
 #mahattatiLiveDispatch .mld-route{font-weight:750;line-height:1.8;overflow-wrap:anywhere}#mahattatiLiveDispatch .mld-meta{font-size:12px;color:#647268;margin-top:5px}
 #mahattatiLiveDispatch button{border:0;border-radius:10px;padding:10px 13px;font:inherit;font-weight:800;cursor:pointer;margin:8px 5px 0 0}
-#mahattatiLiveDispatch .mld-accept{background:#b7f34a;color:#18320a}#mahattatiLiveDispatch .mld-reload{background:#edf4ee;color:#25442f}
+#mahattatiLiveDispatch .mld-accept,#mahattatiLiveDispatch .mld-complete{background:#b7f34a;color:#18320a}#mahattatiLiveDispatch .mld-reload,#mahattatiLiveDispatch .mld-online{background:#edf4ee;color:#25442f}#mahattatiLiveDispatch button:disabled{opacity:.6;cursor:wait}
 #mahattatiLiveDispatch .mld-status{font-size:12px;color:#287b45;margin-top:8px;white-space:pre-wrap}
 </style>
 <script id="mahattati-live-dispatch">
 (()=>{'use strict';
 const client=window.mahattatiSupabase;if(!client)return;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let channel=null,loaded=false;
-function mount(){const host=document.querySelector('#driverDashboardPage .mdd-rides');if(!host||document.getElementById('mahattatiLiveDispatch'))return;const box=document.createElement('section');box.id='mahattatiLiveDispatch';box.innerHTML='<h3>الطلبات المباشرة</h3><p class="mld-note">الطلبات الحقيقية تظهر هنا للسائقين المعتمدين والمتصلين. يلزم تطبيق ملف SQL المرفق أولًا.</p><button class="mld-reload" type="button" id="mldRefresh">تحديث الطلبات</button><div id="mldStatus" class="mld-status" role="status">بانتظار تسجيل الدخول…</div><div id="mldList"></div>';host.prepend(box);box.querySelector('#mldRefresh').addEventListener('click',loadRequests);}
+let channel=null,watchId=null,lastLocationSent=0,refreshing=false;
+function mount(){const host=document.querySelector('#driverDashboardPage .mdd-rides');if(!host||document.getElementById('mahattatiLiveDispatch'))return;const box=document.createElement('section');box.id='mahattatiLiveDispatch';box.innerHTML='<h3>الطلبات المباشرة</h3><p class="mld-note">الطلبات مرتبطة بقاعدة البيانات مباشرة. يلزم اعتماد حساب السائق لتفعيل الاستقبال.</p><button class="mld-reload" type="button" id="mldRefresh">تحديث</button><button class="mld-online" type="button" id="mldOnlineToggle">جارٍ التحقق من حالة الاتصال…</button><div id="mldStatus" class="mld-status" role="status">بانتظار تسجيل الدخول…</div><div id="mldActive"></div><div id="mldList"></div>';host.prepend(box);box.querySelector('#mldRefresh').addEventListener('click',loadRequests);box.querySelector('#mldOnlineToggle').addEventListener('click',toggleOnline);}
 function status(t){const el=document.getElementById('mldStatus');if(el)el.textContent=t;}
 async function getUser(){const {data,error}=await client.auth.getUser();if(error)throw error;if(!data.user)throw new Error('سجّل الدخول بحساب السائق أولًا.');return data.user;}
-async function loadRequests(){mount();const list=document.getElementById('mldList');if(!list)return;try{const user=await getUser();const {data:driver,error:de}=await client.from('driver_applications').select('status,is_online,is_busy,services').eq('user_id',user.id).maybeSingle();if(de)throw de;if(!driver||driver.status!=='approved'){list.innerHTML='';status('حساب السائق غير معتمد بعد.');return;}if(!driver.is_online||driver.is_busy){list.innerHTML='';status(driver.is_busy?'لديك رحلة نشطة؛ لن تظهر طلبات جديدة.':'فعّل حالة الاتصال من لوحة السائق لاستقبال الطلبات.');return;}
+async function getDriver(user){const {data,error}=await client.from('driver_applications').select('status,is_online,is_busy,services,last_latitude,last_longitude').eq('user_id',user.id).maybeSingle();if(error)throw error;return data;}
+function stopLocation(){if(watchId!==null&&navigator.geolocation){navigator.geolocation.clearWatch(watchId);watchId=null;}}
+function startLocation(){if(!navigator.geolocation){status('هذا الجهاز لا يدعم تحديد الموقع.');return;}stopLocation();watchId=navigator.geolocation.watchPosition(async pos=>{const now=Date.now();if(now-lastLocationSent<12000)return;lastLocationSent=now;try{const {error}=await client.rpc('update_my_driver_location',{p_latitude:pos.coords.latitude,p_longitude:pos.coords.longitude});if(error)console.warn('Driver location sync:',error.message);}catch(e){console.warn(e);}},err=>status('تعذّر تحديد موقع السائق: '+err.message),{enableHighAccuracy:true,maximumAge:5000,timeout:15000});}
+async function toggleOnline(){const btn=document.getElementById('mldOnlineToggle');if(btn)btn.disabled=true;try{const user=await getUser();const driver=await getDriver(user);if(!driver||driver.status!=='approved')throw new Error('حساب السائق غير معتمد بعد.');const next=!driver.is_online;const {error}=await client.rpc('set_my_driver_online',{p_is_online:next});if(error)throw error;if(next)startLocation();else stopLocation();status(next?'أنت متصل الآن؛ سيتم تحديث موقعك وإظهار الطلبات المتاحة.':'تم إيقاف استقبال الطلبات.');await loadRequests();}catch(e){status(e.message||'تعذّر تغيير حالة الاتصال.');}finally{if(btn)btn.disabled=false;}}
+async function completeTrip(id,btn){btn.disabled=true;btn.textContent='جارٍ إنهاء الرحلة…';try{const {error}=await client.rpc('complete_my_trip',{p_request_id:id});if(error)throw error;status('تم إنهاء الرحلة بنجاح.');await loadRequests();}catch(e){status('تعذّر إنهاء الرحلة: '+(e.message||'خطأ غير معروف'));btn.disabled=false;btn.textContent='إنهاء الرحلة';}}
+async function loadRequests(){if(refreshing)return;mount();const list=document.getElementById('mldList');if(!list)return;refreshing=true;try{const user=await getUser();const driver=await getDriver(user);const onlineBtn=document.getElementById('mldOnlineToggle');if(!driver||driver.status!=='approved'){list.innerHTML='';document.getElementById('mldActive').innerHTML='';if(onlineBtn)onlineBtn.textContent='حساب السائق غير معتمد';status('حساب السائق غير معتمد بعد.');return;}if(onlineBtn)onlineBtn.textContent=driver.is_online?'إيقاف الاتصال':'أنا متصل — استقبال الطلبات';
+if(driver.is_online)startLocation();else stopLocation();
+const {data:active,error:activeError}=await client.from('trip_requests').select('id,from_location,to_location,status,fare,distance_km,duration_minutes,service_type,details,created_at').eq('driver_id',user.id).in('status',['accepted','in_progress']).order('created_at',{ascending:false}).limit(1);if(activeError)throw activeError;
+const activeHost=document.getElementById('mldActive');activeHost.innerHTML=(active||[]).map(r=>'<article class="mld-card"><strong>رحلتك الحالية</strong><div class="mld-route">🟢 '+esc(r.from_location)+'<br>🔴 '+esc(r.to_location)+'</div><div class="mld-meta">'+esc(r.fare??'—')+' دج · '+esc(r.status==='accepted'?'مقبولة':'جارية')+'</div><button class="mld-complete" data-complete="'+esc(r.id)+'">إنهاء الرحلة</button></article>').join('');
+activeHost.querySelectorAll('[data-complete]').forEach(btn=>btn.addEventListener('click',()=>completeTrip(btn.dataset.complete,btn)));
+if(!driver.is_online||driver.is_busy){list.innerHTML='';status(driver.is_busy?'لديك رحلة نشطة. أكملها قبل استقبال طلب جديد.':'فعّل الاتصال لاستقبال الطلبات المباشرة.');}
+else{
 const {data,error}=await client.from('trip_requests').select('id,from_location,to_location,status,fare,distance_km,duration_minutes,service_type,details,created_at').eq('status','pending').is('driver_id',null).order('created_at',{ascending:false}).limit(50);if(error)throw error;
-list.innerHTML=(data||[]).map(r=>{const d=r.details||{};return `<article class="mld-card" data-request="${esc(r.id)}"><div class="mld-route">🟢 ${esc(r.from_location||'نقطة الانطلاق غير محددة')}<br>🔴 ${esc(r.to_location||'الوجهة غير محددة')}</div><div class="mld-meta">${r.distance_km?esc(Number(r.distance_km).toFixed(1))+' كم · ':''}${r.duration_minutes?esc(Math.round(r.duration_minutes))+' دقيقة · ':''}${r.fare!=null?esc(r.fare)+' دج':'السعر غير محدد'} · ${esc(r.service_type||'economy')}</div><button type="button" class="mld-accept" data-accept="${esc(r.id)}">قبول الطلب</button></article>`}).join('')||'<p class="mld-note">لا توجد طلبات متاحة حاليًا.</p>';
-status('تم تحميل الطلبات من قاعدة البيانات.');list.querySelectorAll('[data-accept]').forEach(btn=>btn.addEventListener('click',()=>accept(btn.dataset.accept,btn)));
-if(!channel){channel=client.channel('mahattati-driver-requests').on('postgres_changes',{event:'*',schema:'public',table:'trip_requests'},()=>loadRequests()).subscribe();}
-}catch(e){status('تعذر تحميل الطلبات: '+(e.message||'خطأ غير معروف')+'\nتأكد من تطبيق ملف SQL المرفق وصلاحيات Supabase.');}}
-async function accept(id,btn){btn.disabled=true;btn.textContent='جارٍ قبول الطلب…';try{const {data,error}=await client.rpc('accept_trip_request',{p_request_id:id});if(error)throw error;status('تم قبول الطلب بنجاح. معرّف الطلب: '+data.id);await loadRequests();document.dispatchEvent(new CustomEvent('mahattati:trip-accepted',{detail:data}));}catch(e){status('لم يتم قبول الطلب: '+(e.message||'ربما قبله سائق آخر.'));btn.disabled=false;btn.textContent='قبول الطلب';await loadRequests();}}
+const services=driver.services||{economy:true,comfort:true,premium:false,delivery:false};
+const filtered=(data||[]).filter(r=>services[r.service_type||'economy']!==false);
+list.innerHTML=filtered.map(r=>'<article class="mld-card" data-request="'+esc(r.id)+'"><div class="mld-route">🟢 '+esc(r.from_location||'نقطة الانطلاق غير محددة')+'<br>🔴 '+esc(r.to_location||'الوجهة غير محددة')+'</div><div class="mld-meta">'+(r.distance_km?esc(Number(r.distance_km).toFixed(1))+' كم · ':'')+(r.duration_minutes?esc(Math.round(r.duration_minutes))+' دقيقة · ':'')+(r.fare!=null?esc(r.fare)+' دج':'السعر غير محدد')+' · '+esc(r.service_type||'economy')+'</div><button class="mld-accept" data-accept="'+esc(r.id)+'">قبول الطلب</button></article>').join('')||'<p class="mld-note">لا توجد طلبات متاحة حاليًا.</p>';
+list.querySelectorAll('[data-accept]').forEach(btn=>btn.addEventListener('click',()=>accept(btn.dataset.accept,btn)));
+status('متصل — تتم مراقبة الطلبات الجديدة مباشرة.');
+}
+if(!channel)channel=client.channel('mahattati-driver-requests').on('postgres_changes',{event:'*',schema:'public',table:'trip_requests'},()=>{loadRequests();}).subscribe();
+}catch(e){status('تعذّر تحميل الطلبات: '+(e.message||'خطأ غير معروف'));}finally{refreshing=false;}}
+async function accept(id,btn){btn.disabled=true;btn.textContent='جارٍ القبول…';try{const {data,error}=await client.rpc('accept_trip_request',{p_request_id:id});if(error)throw error;status('تم قبول الطلب.');await loadRequests();document.dispatchEvent(new CustomEvent('mahattati:trip-accepted',{detail:data}));}catch(e){status('لم يتم قبول الطلب: '+(e.message||'ربما قبله سائق آخر.'));btn.disabled=false;btn.textContent='قبول الطلب';await loadRequests();}}
 window.mahattatiLoadDriverRequests=loadRequests;
-client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_IN'&&session?.user){setTimeout(()=>{mount();loadRequests()},250)}if(event==='SIGNED_OUT'){if(channel){client.removeChannel(channel);channel=null;}const l=document.getElementById('mldList');if(l)l.innerHTML='';status('سجّل الدخول بحساب السائق.')}});
+client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_IN'&&session?.user)setTimeout(()=>{mount();loadRequests()},250);if(event==='SIGNED_OUT'){stopLocation();if(channel){client.removeChannel(channel);channel=null;}const l=document.getElementById('mldList');if(l)l.innerHTML='';status('سجّل الدخول بحساب السائق.')}});
 document.addEventListener('click',e=>{if(e.target.closest('#driverDashboardPage .mdd-nav')||e.target.closest('#driverDashboardPage .mdd-view'))setTimeout(()=>{mount();loadRequests()},300)});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{mount();loadRequests()});else{mount();loadRequests();}
 })();
