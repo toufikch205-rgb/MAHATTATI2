@@ -3045,9 +3045,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
        }catch(e){console.warn('Passenger realtime update failed:',e);}
      }).subscribe();
  }
- async function enterAuthenticated(user,name){
+ async function enterAuthenticated(user,name,options={}){
    try{setDisplayName(name||user?.user_metadata?.full_name||'',user?.email||'');if(user){try{await syncProfile(user,name)}catch(err){console.warn('Profile sync failed:',err)}try{await loadCloudRequests(user)}catch(err){console.warn('Trip history sync failed:',err)}try{startPassengerRealtime(user)}catch(err){console.warn('Realtime setup failed:',err)}}}
-   finally{closeAuth();const welcome=$('mahattatiWelcome');if(welcome){welcome.hidden=true;document.body.style.overflow='';try{sessionStorage.setItem('mahattati_welcome_seen','1')}catch(e){}}}
+   finally{
+     closeAuth();
+     /* Restoring an existing Supabase session is not a user action: keep the welcome screen visible. */
+     if(!options.keepWelcomeVisible){const welcome=$('mahattatiWelcome');if(welcome){welcome.hidden=true;document.body.style.overflow='';try{sessionStorage.setItem('mahattati_welcome_seen','1')}catch(e){}}}
+   }
  }
  $('mahattatiAuthForm').addEventListener('submit',async e=>{
    e.preventDefault();
@@ -3085,7 +3089,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
      say(friendly);
    }finally{busy=false;$('mauthSubmit').disabled=false;$('mauthSwitch').disabled=false;}
  });
- if(client){client.auth.getSession().then(async({data,error})=>{if(error)console.warn(error.message);if(data?.session?.user){const u=data.session.user;await enterAuthenticated(u);}});client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){if(passengerTripChannel){client.removeChannel(passengerTripChannel);passengerTripChannel=null;}clearPassengerTracking();/* Keep local display name; cloud access is revoked by the session. */}else if(event==='SIGNED_IN'&&session?.user){setTimeout(()=>enterAuthenticated(session.user),0);}});}
+ if(client){client.auth.getSession().then(async({data,error})=>{if(error)console.warn(error.message);if(data?.session?.user){const u=data.session.user;await enterAuthenticated(u,undefined,{keepWelcomeVisible:true});}});client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){if(passengerTripChannel){client.removeChannel(passengerTripChannel);passengerTripChannel=null;}clearPassengerTracking();/* Keep local display name; cloud access is revoked by the session. */}else if(event==='SIGNED_IN'&&session?.user){setTimeout(()=>enterAuthenticated(session.user,undefined,{keepWelcomeVisible:true}),0);}});}
 })();
 </script>
 
