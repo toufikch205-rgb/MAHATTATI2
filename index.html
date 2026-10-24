@@ -1500,6 +1500,7 @@ body.mdd-request-nav-pinned #driverDashboardPage .mdd-nav, body.mdd-request-nav-
           <span class="vr-option-text">بطاقة رمادية دائمة</span><span class="vr-check" aria-hidden="true"></span>
         </button>
       </div>
+      <label style="display:block;margin-top:16px;font-weight:800" for="vehicleRegistrationDocumentInput">صورة البطاقة الرمادية / شهادة تسجيل المركبة</label><input id="vehicleRegistrationDocumentInput" type="file" accept="image/jpeg,image/png,image/webp" required style="display:block;width:100%;margin-top:8px;padding:10px;border:1px solid #e3e8e0;border-radius:12px">
     </form>
   </main>
   <footer class="dsp-footer"><div class="dsp-progress-label"><strong id="vehicleRegistrationProgressLabel">3 من 4</strong></div><div class="dsp-progress"><span id="vehicleRegistrationProgressBar" style="width:75%"></span></div><div class="dsp-actions"><button id="vehicleRegistrationNext" type="submit" form="vehicleRegistrationForm">التالي　‹</button><button id="vehicleRegistrationBack" type="button">‹</button></div></footer>
@@ -1543,7 +1544,9 @@ body.mdd-request-nav-pinned #driverDashboardPage .mdd-nav, body.mdd-request-nav-
   <main class="das-main">
     <div class="das-kicker"><span class="das-kicker-icon">✓</span><span>إعداد الوصول إلى طلبات الرحلات</span></div>
     <h1>الوثائق المقدمة</h1>
-    <p class="das-lead">لدينا جميع المعلومات المطلوبة للتحقق من هويتك</p>
+    <p class="das-lead">أكمل بيانات التواصل ورقم بطاقة التعريف لإرسال ملفك بأمان للمراجعة.</p>
+    <label style="display:block;margin:14px 0 6px;font-weight:800" for="driverNationalIdNumber">رقم بطاقة التعريف الوطنية</label><input id="driverNationalIdNumber" inputmode="numeric" autocomplete="off" required style="width:100%;padding:13px;border:1px solid #dce4dc;border-radius:12px;font:inherit">
+    <label style="display:block;margin:14px 0 6px;font-weight:800" for="driverApplicationPhone">رقم الهاتف</label><input id="driverApplicationPhone" type="tel" autocomplete="tel" required placeholder="05 / 06 / 07..." style="width:100%;padding:13px;border:1px solid #dce4dc;border-radius:12px;font:inherit">
 
     <section class="das-status-card">
       <div class="das-status-icon" aria-hidden="true">✓</div>
@@ -2227,7 +2230,37 @@ $('driverLicensePage').querySelector('#driverLicenseClose').addEventListener('cl
 function openDriverAccessSetupPage(){const p=$('driverAccessSetupPage');if(!p)return;p.classList.add('open');p.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';}
 function closeDriverAccessSetupPage(){const p=$('driverAccessSetupPage');p.classList.remove('open');p.setAttribute('aria-hidden','true');}
 $('driverAccessClose').onclick=()=>{closeDriverAccessSetupPage();openDriverPartnerPage();};
-$('driverAccessContinue').onclick=()=>openDriverPermissionsPage();
+$('driverAccessContinue').onclick=async()=>{
+ const client=window.mahattatiSupabase;if(!client){toast('قاعدة البيانات غير متاحة.');return;}
+ const nationalId=$('driverNationalIdNumber')?.value.trim(),phone=$('driverApplicationPhone')?.value.trim();
+ if(!nationalId||nationalId.length<6){toast('أدخل رقم بطاقة التعريف الوطنية بشكل صحيح.');$('driverNationalIdNumber')?.focus();return;}
+ if(!phone||phone.length<8){toast('أدخل رقم هاتف صحيحًا.');$('driverApplicationPhone')?.focus();return;}
+ const {data:{user},error:authError}=await client.auth.getUser();if(authError||!user){toast('سجّل الدخول أولاً لإرسال طلب الشراكة.');if(window.mahattatiOpenAuth)window.mahattatiOpenAuth();return;}
+ const {data:existing,error:existingError}=await client.from('driver_applications').select('status').eq('user_id',user.id).maybeSingle();
+ if(existingError){toast('تعذّر التحقق من ملف السائق: '+existingError.message);return;}
+ if(existing){toast(existing.status==='approved'?'حسابك معتمد بالفعل.':'لديك ملف سائق قيد المراجعة أو تمت مراجعته.');if(existing.status==='approved')openDriverPermissionsPage();return;}
+ const licenseFront=$('driverLicenseFrontInput')?.files?.[0],licenseBack=$('driverLicenseBackInput')?.files?.[0],registration=$('vehicleRegistrationDocumentInput')?.files?.[0];
+ if(!licenseFront||!licenseBack){toast('أضف وجهي رخصة القيادة قبل إرسال الملف.');return;}
+ if(!registration){toast('أضف صورة البطاقة الرمادية / شهادة تسجيل المركبة.');return;}
+ const files=[licenseFront,licenseBack,registration];
+ for(const file of files){if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10*1024*1024){toast('الوثائق يجب أن تكون JPG أو PNG أو WEBP وأقل من 10MB لكل صورة.');return;}}
+ const btn=$('driverAccessContinue');btn.disabled=true;btn.textContent='جارٍ إرسال الملف بأمان…';
+ const uploaded=[];
+ try{
+   const bucket=client.storage.from('driver-private-documents');
+   for(let i=0;i<files.length;i++){
+     const file=files[i],ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+     const path=user.id+'/application-'+Date.now()+'-'+['license-front','license-back','vehicle-registration'][i]+'.'+ext;
+     const {error}=await bucket.upload(path,file,{upsert:false,contentType:file.type});if(error)throw error;uploaded.push(path);
+   }
+   const fullName=[$('driverFirstName')?.value.trim(),$('driverLastName')?.value.trim()].filter(Boolean).join(' ');
+   const {error}=await client.from('driver_applications').insert({user_id:user.id,full_name:fullName,surname:$('driverLastName')?.value.trim()||'',phone,email:user.email||'',vehicle_make:$('vehicleBrand')?.value.trim()||'',vehicle_model:$('vehicleModel')?.value.trim()||'',vehicle_color:$('vehicleColor')?.value.trim()||'',selfie_license_path:JSON.stringify(uploaded.slice(0,2)),vehicle_registration_path:uploaded[2],national_id_number:nationalId});
+   if(error)throw error;
+   toast('تم إرسال ملف السائق بأمان. سيبقى قيد المراجعة حتى تتم الموافقة.');
+   closeDriverAccessSetupPage();openDriverPermissionsPage();
+ }catch(e){console.error('Driver application submission failed',e);toast('تعذّر إرسال ملف السائق: '+(e.message||'خطأ غير معروف'));for(const path of uploaded){try{await client.storage.from('driver-private-documents').remove([path]);}catch(_){}}}
+ finally{btn.disabled=false;btn.innerHTML='انتقال إلى الإعداد <span aria-hidden="true">←</span>';}
+};
 function openDriverPermissionsPage(){const p=$('driverPermissionsPage');if(!p)return;p.classList.add('open');p.setAttribute('aria-hidden','false');}
 function closeDriverPermissionsPage(){const p=$('driverPermissionsPage');if(!p)return;p.classList.remove('open');p.setAttribute('aria-hidden','true');}
 $('driverPermissionsClose').onclick=closeDriverPermissionsPage;
@@ -2235,7 +2268,7 @@ $('driverPermissionsX').onclick=closeDriverPermissionsPage;
 $('driverPermissionsDone').onclick=()=>{closeDriverPermissionsPage();openDriverDashboardPage();};
 function openDriverDashboardPage(){const p=$('driverDashboardPage');if(!p)return;p.classList.add('open');p.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';}
 function mddNotice(msg){const t=$('mddToast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(window.__mddTimer);window.__mddTimer=setTimeout(()=>t.classList.remove('show'),2200);}
-$('mddStatus').onclick=()=>{const b=$('mddStatus'),on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(on));b.classList.toggle('online',on);b.querySelector('span').textContent=on?'متصل':'غير متصل';$('mddOnlineHint').innerHTML='<i class="'+(on?'online':'')+'"></i><span>'+(on?'أنت متصل الآن ويمكنك استقبال طلبات الرحلات.':'أنت غير متصل. غيّر حالتك لاستقبال الطلبات.')+'</span>';};
+$('mddStatus').onclick=async()=>{const b=$('mddStatus'),client=window.mahattatiSupabase;if(!client){mddNotice('قاعدة البيانات غير متاحة.');return;}b.disabled=true;try{const {data:{user},error:ue}=await client.auth.getUser();if(ue)throw ue;if(!user){if(window.mahattatiOpenAuth)window.mahattatiOpenAuth();throw new Error('سجّل الدخول أولاً.');}const {data:driver,error:de}=await client.from('driver_applications').select('status,is_online,is_busy').eq('user_id',user.id).maybeSingle();if(de)throw de;if(!driver||driver.status!=='approved')throw new Error('حساب السائق غير معتمد بعد.');const next=!driver.is_online;const {error}=await client.rpc('set_my_driver_online',{p_is_online:next});if(error)throw error;b.setAttribute('aria-pressed',String(next));b.classList.toggle('online',next);b.querySelector('span').textContent=next?'متصل':'غير متصل';$('mddOnlineHint').innerHTML='<i class="'+(next?'online':'')+'"></i><span>'+(next?'أنت متصل الآن ويمكنك استقبال طلبات الرحلات.':'أنت غير متصل. غيّر حالتك لاستقبال الطلبات.')+'</span>';if(window.mahattatiLoadDriverRequests)window.mahattatiLoadDriverRequests();}catch(e){mddNotice(e.message||'تعذّر تغيير حالة الاتصال.');}finally{b.disabled=false;}};
 $('mddSettings').onclick=()=>mddNotice('إعدادات السائق — ستتوفر هنا لاحقًا.');$('mddMenu').onclick=(e)=>{e.preventDefault();e.stopPropagation();const menuPartner=$('menuPartner'),driverPage=$('driverDashboardPage');if(menuPartner)menuPartner.textContent=driverPage?.classList.contains('open')?'انتقال إلى وضع الراكب':'وضع الشريك السائق';openMenu();};
 function mddRestorePinnedNav(){document.body.classList.remove('mdd-request-nav-pinned');const nav=window.__mddPinnedNav;if(!nav)return;const dashboard=document.getElementById('driverDashboardPage');if(dashboard){const rides=dashboard.querySelector('.mdd-rides');if(rides&&rides.parentNode===dashboard)dashboard.insertBefore(nav,rides.nextSibling);else dashboard.appendChild(nav);}nav.style.removeProperty('position');nav.style.removeProperty('left');nav.style.removeProperty('right');nav.style.removeProperty('bottom');nav.style.removeProperty('z-index');nav.style.removeProperty('width');nav.style.removeProperty('min-height');nav.style.removeProperty('padding');nav.style.removeProperty('background');nav.style.removeProperty('box-shadow');nav.style.removeProperty('backdrop-filter');window.__mddPinnedNav=null;}
 function mddPinNavAboveRequest(){let nav=window.__mddPinnedNav||document.querySelector('#driverDashboardPage .mdd-nav')||document.querySelector('nav.mdd-nav');if(!nav)return;const dashboard=document.getElementById('driverDashboardPage');if(!window.__mddPinnedNav){window.__mddPinnedNav=nav;window.__mddPinnedNavOriginalParent=nav.parentNode;window.__mddPinnedNavOriginalNext=nav.nextSibling;}document.body.classList.add('mdd-request-nav-pinned');if(nav.parentNode!==document.body)document.body.appendChild(nav);['position','left','right','bottom','z-index','width','display','visibility','opacity','pointer-events','background','box-shadow'].forEach((k,i)=>{});nav.style.setProperty('position','fixed','important');nav.style.setProperty('left','0','important');nav.style.setProperty('right','0','important');nav.style.setProperty('top','auto','important');nav.style.setProperty('bottom','0','important');nav.style.setProperty('z-index','2147483647','important');nav.style.setProperty('width','100%','important');nav.style.setProperty('display','grid','important');nav.style.setProperty('visibility','visible','important');nav.style.setProperty('opacity','1','important');nav.style.setProperty('background','rgba(255,255,255,.99)','important');nav.style.setProperty('box-shadow','0 -5px 18px rgba(20,40,22,.12)','important');nav.style.setProperty('pointer-events','auto','important');}
