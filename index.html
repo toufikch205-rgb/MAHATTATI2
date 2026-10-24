@@ -3281,13 +3281,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
   z-index:2147483001!important;display:flex!important;
   padding-bottom:calc(8px + env(safe-area-inset-bottom))!important;
 }
-#mddRideRequestPage{
-  inset:0 0 calc(74px + env(safe-area-inset-bottom)) 0!important;
-  bottom:calc(74px + env(safe-area-inset-bottom))!important;
-  padding-bottom:8px!important;z-index:9000!important;
-}
-#mddRideRequestPage.open{display:block!important;}
-@media(max-width:420px){#mddRideRequestPage{bottom:calc(74px + env(safe-area-inset-bottom))!important;}}
+/* Ride-request screen sizing is defined in mdd-ride-request-canonical-styles. */
 </style>
 
 
@@ -3299,18 +3293,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
   z-index:2147483001!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
   background:rgba(255,255,255,.99)!important;
 }
-#driverDashboardPage #mddRideRequestPage,
-#mddRideRequestPage{
-  position:fixed!important;top:env(safe-area-inset-top)!important;left:0!important;right:0!important;
-  bottom:calc(74px + env(safe-area-inset-bottom))!important;
-  width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;
-  z-index:9000!important;overflow-y:auto!important;overflow-x:hidden!important;
-  padding-bottom:12px!important;box-sizing:border-box!important;
-}
-#mddRideRequestPage.open[aria-hidden="false"]{display:block!important}
 @media(max-width:420px){
- #driverDashboardPage .mdd-nav{min-height:74px!important;padding:7px 6px calc(7px + env(safe-area-inset-bottom))!important}
- #driverDashboardPage #mddRideRequestPage,#mddRideRequestPage{bottom:calc(74px + env(safe-area-inset-bottom))!important}
+  #driverDashboardPage .mdd-nav{min-height:74px!important;padding:7px 6px calc(7px + env(safe-area-inset-bottom))!important}
 }
 </style>
 
@@ -3343,7 +3327,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 }
 #driverDashboardPage .mdd-nav button.active{border-radius:14px!important}
 #driverDashboardPage{padding-bottom:calc(88px + env(safe-area-inset-bottom))!important}
-#mddRideRequestPage{padding-bottom:calc(100px + env(safe-area-inset-bottom))!important}
+
 @media(max-width:380px){
  #driverDashboardPage .mdd-nav{gap:2px!important;padding-inline:5px!important}
  #driverDashboardPage .mdd-nav button{font-size:9px!important;padding-inline:1px!important}
@@ -3762,13 +3746,7 @@ input,textarea,select{min-width:0;max-width:100%}
 @media(min-width:700px){#driverDashboardPage .mdd-main{width:min(680px,100%);margin-inline:auto;padding-inline:24px}}@media(max-height:700px){#driverDashboardPage .mdd-main{padding-top:10px}#driverDashboardPage .mdd-rides{gap:8px}#driverDashboardPage .mdd-ride{padding:11px}}
 </style>
 
-<style id="mdd-ride-request-visibility-fix">
-/* Robust visibility for the separate ride-request screen */
-#mddRideRequestPage{display:none!important;position:fixed!important;inset:0!important;z-index:2147483000!important;width:100vw!important;height:100dvh!important;max-height:100dvh!important;overflow-y:auto!important;background:#f5f8f5!important;padding-bottom:calc(88px + env(safe-area-inset-bottom))!important;visibility:visible!important;opacity:1!important}
-#mddRideRequestPage.open{display:block!important}
-#mddRideRequestPage[aria-hidden="true"]{display:none!important}
-#mddRideRequestPage.open[aria-hidden="false"]{display:block!important}
-</style>
+<!-- Duplicate ride-request visibility rules removed; canonical rules are below. -->
 <script id="mdd-ride-request-navigation-fix">
 (function(){
   function openRideRequest(){
@@ -3819,7 +3797,7 @@ input,textarea,select{min-width:0;max-width:100%}
 
 <style id="mdd-ride-request-canonical-styles">
 /* Single source of truth for the driver ride-request screen. */
-#mddRideRequestPage{display:none;position:fixed;inset:0;z-index:9000;width:100%;height:100dvh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;background:#f7faf9;color:#103b35;padding:0 0 calc(8px + env(safe-area-inset-bottom));font-family:Tahoma,Arial,sans-serif;box-sizing:border-box}
+#mddRideRequestPage{display:none;position:fixed;inset:0;z-index:9000;width:100%;height:100dvh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;background:#f7faf9;color:#103b35;padding:0 0 calc(92px + env(safe-area-inset-bottom));font-family:Tahoma,Arial,sans-serif;box-sizing:border-box}
 #mddRideRequestPage.open{display:block}
 #mddRideRequestPage[aria-hidden="true"]{display:none}
 #mddRideRequestPage *{box-sizing:border-box}
