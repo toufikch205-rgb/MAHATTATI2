@@ -2870,7 +2870,7 @@ function setDestinationLabel(address){
 async function setUser(latlng,acc=80,requestId=locationRequestId){
   if(requestId!==locationRequestId)return '';
   userLatLng=latlng;
-  const icon=divIcon('<div class="custom-pin user-location"></div><span class="route-point-letter route-point-a">A</span>',[38,40],[19,20]);
+  const icon=divIcon('<div class="custom-pin user-location"></div>',[30,34],[15,17]);
   if(userMarker) map.removeLayer(userMarker);
   userMarker=L.marker(latlng,{icon,zIndexOffset:1200,title:lang==='ar'?'موقع الهاتف الحالي':'Position actuelle du téléphone',alt:lang==='ar'?'علامة موقعك الحالي':'Current location marker',keyboard:true}).addTo(map);
   if(pickupMarker && pickupMarker!==userMarker) map.removeLayer(pickupMarker);
@@ -3015,12 +3015,21 @@ async function searchDestinationPlaces(){
     if(!res.ok)throw new Error('search HTTP '+res.status);
     const places=await res.json();
     box.innerHTML='';
-    if(!places.length){box.innerHTML='<div class="pickup-search-status">لم يتم العثور على المكان. جرّب اسم الحي أو البلدية أو الولاية.</div>';return;}
-    places.forEach(place=>{
-      const b=document.createElement('button');b.type='button';b.className='pickup-search-result';b.textContent=place.display_name;
+    if(!places.length){box.innerHTML='<div class="pickup-search-status">لم يتم العثور على المكان. جرّب اسم البلدية أو الولاية.</div>';return;}
+    // Prefer actual populated places over province/boundary centroids (e.g. a wilaya result instead of Tiaret city).
+    const localityTypes=new Set(['city','town','village','municipality','suburb','neighbourhood','quarter','hamlet']);
+    const ranked=[...places].sort((a,b)=>{
+      const score=p=>(localityTypes.has(String(p.type||'').toLowerCase())?5:0)+(String(p.class||'').toLowerCase()==='place'?3:0)+(String(p.addresstype||'').toLowerCase()==='city'?2:0);
+      return score(b)-score(a);
+    });
+    ranked.forEach(place=>{
+      const b=document.createElement('button');b.type='button';b.className='pickup-search-result';
+      const typeLabel=String(place.type||place.addresstype||'').replaceAll('_',' ');
+      b.textContent=place.display_name+(typeLabel?' · '+typeLabel:'');
       b.onclick=()=>{
-        const ll=L.latLng(Number(place.lat),Number(place.lon));
-        if(!Number.isFinite(ll.lat)||!Number.isFinite(ll.lng))return;
+        const lat=Number(place.lat),lon=Number(place.lon);
+        if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return;
+        const ll=L.latLng(lat,lon);
         if(destMarker)map.removeLayer(destMarker);
         const icon=divIcon('<div class="custom-pin red"></div><span class="route-point-letter route-point-b">B</span>',[38,40],[19,25]);
         destMarker=L.marker(ll,{icon,zIndexOffset:1300,title:say('dest')}).addTo(map);
