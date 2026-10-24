@@ -1166,14 +1166,7 @@ body.mdd-request-nav-pinned #mddRideRequestPage.open{padding-bottom:calc(92px + 
 body.mdd-request-nav-pinned #driverDashboardPage .mdd-nav, body.mdd-request-nav-pinned > .mdd-nav{position:fixed !important;left:0 !important;right:0 !important;bottom:0 !important;top:auto !important;width:100% !important;display:grid !important;visibility:visible !important;opacity:1 !important;z-index:2147483647 !important;pointer-events:auto !important;background:rgba(255,255,255,.99) !important;box-shadow:0 -5px 18px rgba(20,40,22,.12) !important;}
 </style>
 
-<style id="mddRealRequestMapStyles">
-#mddRideRequestPage .mdd-request-map{position:relative!important;overflow:hidden!important;background:#edf5f2!important;padding:0!important;isolation:isolate}
 
-
-
-
-#mddRideRequestPage .mdd-request-map .mdd-map-grid,#mddRideRequestPage .mdd-request-map .mdd-map-road,#mddRideRequestPage .mdd-request-map .mdd-map-park,#mddRideRequestPage .mdd-request-map .mdd-map-route,#mddRideRequestPage .mdd-request-map .mdd-map-pin,#mddRideRequestPage .mdd-request-map .mdd-map-caption{display:none!important}
-</style>
 </head>
 <body>
 <div id="mahattatiWelcome" role="dialog" aria-modal="true" aria-label="مرحبا بك في محطتي">
@@ -3814,7 +3807,12 @@ input,textarea,select{min-width:0;max-width:100%}
 #mddRideRequestPage .mdd-request-header h1{grid-column:2;grid-row:1;justify-self:center;align-self:center;margin:0;text-align:center;font-size:clamp(19px,5vw,23px);line-height:1.25;font-weight:900;color:#103b35}
 #mddRideRequestPage .mdd-request-pill{grid-column:1;grid-row:1;align-self:center;justify-self:start;border-radius:18px;background:#effaf4;color:#08a85c;font-size:11px;font-weight:750;padding:7px 9px;white-space:nowrap}
 #mddRideRequestPage .mdd-request-content{width:100%;max-width:720px;margin:0 auto;padding:7px 11px 10px}
-#mddRideRequestPage .mdd-request-map{position:relative;height:clamp(145px,21dvh,205px);min-height:0;overflow:hidden;border:1px solid #e1ebec;border-radius:22px;background:#edf5f2;box-shadow:0 5px 18px #174d3910}
+#mddRideRequestPage .mdd-request-map{position:relative;isolation:isolate;height:clamp(145px,21dvh,205px);min-height:0;overflow:hidden;padding:0;border:1px solid #e1ebec;border-radius:22px;background:#e9eff2;box-shadow:0 5px 18px #174d3910}
+#mddRideRequestPage #mddRequestLeafletMap{position:absolute;inset:0;display:block;width:100%;height:100%;min-height:0;visibility:visible;opacity:1;z-index:1;border-radius:inherit;overflow:hidden}
+#mddRideRequestPage #mddRequestLeafletMap.leaflet-container{background:#e9eff2;font-family:system-ui,Arial,sans-serif}
+#mddRideRequestPage #mddRequestLeafletMap .leaflet-tile-pane,#mddRideRequestPage #mddRequestLeafletMap .leaflet-tile{filter:none;opacity:1;visibility:visible}
+#mddRideRequestPage #mddRequestLeafletMap .leaflet-control-attribution{font-size:9px}
+#mddRideRequestPage #mddRequestLeafletMap .leaflet-control-zoom{display:none}
 #mddRideRequestPage .mdd-map-grid{opacity:.42}
 #mddRideRequestPage .mdd-map-road{opacity:.96}
 #mddRideRequestPage .mdd-map-route{position:absolute;inset:0;width:100%;height:100%}
@@ -3890,15 +3888,7 @@ input,textarea,select{min-width:0;max-width:100%}
 
 
 
-<style id="mdd-request-map-canonical-css">
-/* Canonical map rules: the driver request page owns its own Leaflet map. */
-#mddRideRequestPage .mdd-request-map{position:relative!important;isolation:isolate;overflow:hidden!important;padding:0!important;background:#e9eff2!important}
-#mddRideRequestPage #mddRequestLeafletMap{position:absolute!important;inset:0!important;display:block!important;width:100%!important;height:100%!important;min-height:0!important;visibility:visible!important;opacity:1!important;z-index:1!important;border-radius:inherit;overflow:hidden}
-#mddRideRequestPage #mddRequestLeafletMap.leaflet-container{background:#e9eff2!important;font-family:system-ui,Arial,sans-serif}
-#mddRideRequestPage #mddRequestLeafletMap .leaflet-tile-pane,#mddRideRequestPage #mddRequestLeafletMap .leaflet-tile{filter:none!important;opacity:1!important;visibility:visible!important}
-#mddRideRequestPage #mddRequestLeafletMap .leaflet-control-attribution{font-size:9px!important}
-#mddRideRequestPage #mddRequestLeafletMap .leaflet-control-zoom{display:none!important}
-</style>
+
 <script id="mdd-independent-real-map-js">
 (function(){
   let requestMap=null, requestTiles=null, pickupPin=null, destinationPin=null, routeLayer=null;
@@ -3965,4 +3955,4 @@ input,textarea,select{min-width:0;max-width:100%}
 })();
 </script>
 
-<style id='final-real-map-visibility-fix'>#map,#mddRequestLeafletMap{background:#e9eff2!important;isolation:isolate}#map .leaflet-tile-pane,#mddRequestLeafletMap .leaflet-tile-pane{filter:none!important;opacity:1!important}#map .leaflet-tile,#mddRequestLeafletMap .leaflet-tile{filter:none!important;opacity:1!important;visibility:visible!important}#mddRequestLeafletMap{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;overflow:hidden!important}.mdd-request-map{position:relative!important;overflow:hidden!important}</style>
+<style id="mdd-home-map-visibility-fix">#map{background:#e9eff2;isolation:isolate}#map .leaflet-tile-pane{filter:none;opacity:1}#map .leaflet-tile{filter:none;opacity:1;visibility:visible}</style>
