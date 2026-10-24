@@ -2291,7 +2291,42 @@ function closeDriverPermissionsPage(){const p=$('driverPermissionsPage');if(!p)r
 $('driverPermissionsClose').onclick=closeDriverPermissionsPage;
 $('driverPermissionsX').onclick=closeDriverPermissionsPage;
 $('driverPermissionsDone').onclick=()=>{closeDriverPermissionsPage();openDriverDashboardPage();};
-function openDriverDashboardPage(){const p=$('driverDashboardPage');if(!p)return;p.classList.add('open');p.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';}
+async function openDriverDashboardPage(){
+ const p=$('driverDashboardPage');
+ const client=window.mahattatiSupabase;
+ if(!p)return;
+ if(!client){toast('تعذّر الاتصال بقاعدة البيانات. لم يتم فتح واجهة السائق.');return;}
+ try{
+  const {data:{user},error:authError}=await client.auth.getUser();
+  if(authError)throw authError;
+  if(!user){
+   toast('سجّل الدخول أولًا للتحقق من حالة حساب السائق.');
+   if(typeof window.mahattatiOpenAuth==='function')window.mahattatiOpenAuth();
+   return;
+  }
+  const {data:driver,error}=await client.from('driver_applications').select('status').eq('user_id',user.id).maybeSingle();
+  if(error)throw error;
+  if(!driver){
+   toast('ليس لديك ملف سائق. أنشئ حساب شريك سائق أولًا.');
+   return;
+  }
+  if(driver.status!=='approved'){
+   const messages={
+    pending:'حسابك قيد الانتظار لدى الإدارة. ستتمكن من الدخول بعد الموافقة.',
+    under_review:'ملف السائق الخاص بك قيد المراجعة حاليًا. يرجى الانتظار.',
+    rejected:'تم رفض طلب شراكة السائق. يرجى التواصل مع الإدارة لمعرفة التفاصيل.'
+   };
+   toast(messages[driver.status]||'حساب السائق غير معتمد. لا يمكن فتح الواجهة حاليًا.');
+   return;
+  }
+  p.classList.add('open');
+  p.setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+ }catch(error){
+  console.error('Driver dashboard access verification failed:',error);
+  toast('تعذّر التحقق من حالة حسابك. لم يتم فتح واجهة السائق. حاول مجددًا.');
+ }
+}
 function mddNotice(msg){const t=$('mddToast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(window.__mddTimer);window.__mddTimer=setTimeout(()=>t.classList.remove('show'),2200);}
 $('mddStatus').onclick=async()=>{const b=$('mddStatus'),client=window.mahattatiSupabase;if(!client){mddNotice('قاعدة البيانات غير متاحة.');return;}b.disabled=true;try{const {data:{user},error:ue}=await client.auth.getUser();if(ue)throw ue;if(!user){if(window.mahattatiOpenAuth)window.mahattatiOpenAuth();throw new Error('سجّل الدخول أولاً.');}const {data:driver,error:de}=await client.from('driver_applications').select('status,is_online,is_busy').eq('user_id',user.id).maybeSingle();if(de)throw de;if(!driver||driver.status!=='approved')throw new Error('حساب السائق غير معتمد بعد.');const next=!driver.is_online;const {error}=await client.rpc('set_my_driver_online',{p_is_online:next});if(error)throw error;b.setAttribute('aria-pressed',String(next));b.classList.toggle('online',next);b.querySelector('span').textContent=next?'متصل':'غير متصل';$('mddOnlineHint').innerHTML='<i class="'+(next?'online':'')+'"></i><span>'+(next?'أنت متصل الآن ويمكنك استقبال طلبات الرحلات.':'أنت غير متصل. غيّر حالتك لاستقبال الطلبات.')+'</span>';if(window.mahattatiLoadDriverRequests)window.mahattatiLoadDriverRequests();}catch(e){mddNotice(e.message||'تعذّر تغيير حالة الاتصال.');}finally{b.disabled=false;}};
 $('mddSettings').onclick=()=>mddNotice('إعدادات السائق — ستتوفر هنا لاحقًا.');$('mddMenu').onclick=(e)=>{e.preventDefault();e.stopPropagation();const menuPartner=$('menuPartner'),driverPage=$('driverDashboardPage');if(menuPartner)menuPartner.textContent=driverPage?.classList.contains('open')?'انتقال إلى وضع الراكب':'وضع الشريك السائق';openMenu();};
@@ -2349,7 +2384,7 @@ document.querySelectorAll('[data-permission][data-choice]').forEach(btn=>btn.add
 try{const savedLocation=localStorage.getItem('mahattati_location_allowed');if(savedLocation==='true')window.MAHATTATI_LOCATION_ALLOWED=true;else if(savedLocation==='false')window.MAHATTATI_LOCATION_ALLOWED=false}catch(e){}
 
 [['dasTemporaryCertificate','dasTemporaryCertificateName'],['dasCriminalRecord','dasCriminalRecordName']].forEach(([inputId,nameId])=>$(inputId).addEventListener('change',e=>{const file=e.target.files&&e.target.files[0];if(file)$(nameId).textContent=file.name;}));
-$('driverPartnerLogin').onclick=()=>{closeDriverPartnerPage();closeMenu();openDriverDashboardPage();};
+$('driverPartnerLogin').onclick=()=>{openDriverDashboardPage();};
 
 $('menuBackdrop').querySelectorAll('[data-menu-action]').forEach(btn=>btn.addEventListener('click',()=>{
  const action=btn.dataset.menuAction;closeMenu();
