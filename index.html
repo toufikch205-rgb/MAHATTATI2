@@ -2775,7 +2775,7 @@ async function drawSelectedRoute(){
       const coords = route.geometry && route.geometry.coordinates;
       if (!Array.isArray(coords) || coords.length < 2 || !Number.isFinite(route.distance) || route.distance <= 0 || !Number.isFinite(route.duration) || route.duration <= 0) throw new Error('Route geometry or metrics are invalid');
       const snapDistances = (data.waypoints || []).map(point => Number(point.distance) || 0);
-      if (snapDistances.some(distance => distance > 1000)) throw new Error('Route point too far from a mapped road');
+      if (snapDistances.some(distance => distance > 250)) throw new Error('Selected point is too far from a mapped road');
       const points = coords.map(pair => [pair[1], pair[0]]);
       if (points.some(pair => !Number.isFinite(pair[0]) || !Number.isFinite(pair[1]) || Math.abs(pair[0]) > 90 || Math.abs(pair[1]) > 180)) throw new Error('Invalid route coordinates');
       return { route, points, snapDistances };
@@ -2795,31 +2795,14 @@ async function drawSelectedRoute(){
   }
   if (requestId !== routeRequestId) return;
   if (!result) {
-    console.warn('[MAHATTATI] Road routing failed; drawing a direct fallback line:', lastRouteError);
-    // Never leave the user without a visible route: show a direct, dashed estimate if road routing is offline.
-    const points = [[start.lat, start.lng], [end.lat, end.lng]];
-    routeOutline = L.polyline(points, {
-      color: '#ffffff', weight: 9, opacity: .95,
-      lineCap: 'round', lineJoin: 'round', interactive: false
-    }).addTo(map);
-    routeLine = L.polyline(points, {
-      color: '#00D968', weight: 5, opacity: .95, dashArray: '9 9',
-      lineCap: 'round', lineJoin: 'round', interactive: false
-    }).addTo(map);
-    routeOutline.bringToFront();
-    routeLine.bringToFront();
-    if (pickupMarker) pickupMarker.setZIndexOffset(1200);
-    if (destMarker) destMarker.setZIndexOffset(1300);
-    const bounds = L.latLngBounds(start, end).pad(.22);
-    map.fitBounds(bounds, { maxZoom: mode === 'intercity' ? 10 : 16, animate: true });
-    const rad = value => value * Math.PI / 180;
-    const dLat = rad(end.lat - start.lat), dLng = rad(end.lng - start.lng);
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(start.lat)) * Math.cos(rad(end.lat)) * Math.sin(dLng / 2) ** 2;
-    const directKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    console.warn('[MAHATTATI] No reliable road route returned:', lastRouteError);
+    // Do not draw a misleading straight line as if it were a road route.
     if ($('routeSummaryBadge')) $('routeSummaryBadge').hidden = true;
-    toast(lang === 'ar'
-      ? 'تم إظهار مسار مباشر مؤقتًا (' + directKm.toLocaleString('ar-DZ',{maximumFractionDigits:1}) + ' كم). المسافة ليست حسب الطرق.'
-      : 'Ligne directe temporaire (' + directKm.toLocaleString('fr-FR',{maximumFractionDigits:1}) + ' km), distance routière indisponible.');
+    const msg = lang === 'ar'
+      ? 'تعذر إيجاد طريق موثوق بين A وB. بقيت النقطتان كما اخترتهما؛ جرّب تحريكهما إلى شارع قريب ثم أعد المحاولة.'
+      : 'Aucun itinéraire routier fiable entre A et B. Les points restent inchangés ; rapprochez-les d’une rue puis réessayez.';
+    if ($('mapNote')) { $('mapNote').textContent = msg; $('mapNote').classList.add('visible'); }
+    toast(msg);
     return;
   }
   const { route, points, snapDistances } = result;
@@ -2966,6 +2949,9 @@ map.on('click',async e=>{
   ++locationRequestId;
   const selectionRequestId=++mapSelectionRequestId;
   const ll=e.latlng, isPickup=selecting==='pickup';
+  // Disarm immediately, before reverse geocoding starts, so rapid taps cannot
+  // replace the endpoint again while the address lookup is still pending.
+  selecting=null;
   if(isPickup && accuracyCircle){map.removeLayer(accuracyCircle);accuracyCircle=null;}
   const icon=divIcon(`<div class="custom-pin ${isPickup?'green':'red'}"></div><span class="route-point-letter ${isPickup?'route-point-a':'route-point-b'}">${isPickup?'A':'B'}</span>`,[38,40],[19,25]);
   if(isPickup){
