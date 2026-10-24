@@ -2828,6 +2828,15 @@ async function drawSelectedRoute(){
   });
 
   updateRouteSummary(route.distance, route.duration, 'ready');
+  // Automatic suggested fare: 25 DZD per routed kilometre, rounded to the nearest 50 DZD.
+  // Keep the customer's own price if they have manually edited it.
+  if (!fareWasManuallyEdited) {
+    const calculatedFare = Math.max(100, Math.round((route.distance / 1000 * 25) / 50) * 50);
+    setProposedFare(calculatedFare);
+    if ($('fareRouteMeta')) $('fareRouteMeta').textContent = lang === 'ar'
+      ? (route.distance / 1000).toLocaleString('ar-DZ', {maximumFractionDigits:1}) + ' كم × 25 دج للكيلومتر'
+      : (route.distance / 1000).toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' km × 25 DA/km';
+  }
   const km = (route.distance / 1000).toLocaleString(
     lang === 'ar' ? 'ar-DZ' : 'fr-FR', { maximumFractionDigits: 1 }
   );
@@ -3140,6 +3149,7 @@ $('tripSearchOffers').onclick=submitTripRequest;
 $('requestSentOkay').addEventListener('click',()=>{$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');showRequestHistory();});
 $('requestSentModal').addEventListener('click',e=>{if(e.target===$('requestSentModal')){$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');}});
 let proposedFare=500;
+let fareWasManuallyEdited=false;
 function setProposedFare(value){
  proposedFare=Math.max(0,Math.round(Number(value)||0));
  $('fareValue').textContent=String(proposedFare);
@@ -3147,8 +3157,8 @@ function setProposedFare(value){
  $('sfPassengerCount').textContent=String(sfPassengerCount);setSfDepartureMode(sfDepartureMode);
  if($('sfAutoPrice')) $('sfAutoPrice').textContent=String(proposedFare);
 }
-$('farePlus').onclick=()=>setProposedFare(proposedFare+50);
-$('fareMinus').onclick=()=>setProposedFare(proposedFare-50);
+$('farePlus').onclick=()=>{fareWasManuallyEdited=true;setProposedFare(proposedFare+50);};
+$('fareMinus').onclick=()=>{fareWasManuallyEdited=true;setProposedFare(proposedFare-50);};
 function openSuggestFarePage(){
  $('sfPickup').textContent=$('tripPagePickup').textContent||'موقع الانطلاق';
  $('sfDestination').textContent=$('tripPageDestination').textContent||'الوجهة';
@@ -3171,7 +3181,7 @@ $('sfPassengerMinus').addEventListener('click',()=>{sfPassengerCount=Math.max(1,
 $('sfPassengerPlus').addEventListener('click',()=>{sfPassengerCount=Math.min(4,sfPassengerCount+1);$('sfPassengerCount').textContent=String(sfPassengerCount);});
 document.querySelectorAll('#suggestFarePage .sf-time-option').forEach(btn=>btn.addEventListener('click',()=>setSfDepartureMode(btn.dataset.time)));
 
-$('sfPrice').addEventListener('input',()=>{proposedFare=Math.max(0,Math.round(Number($('sfPrice').value)||0));if($('sfAutoPrice')) $('sfAutoPrice').textContent=String(proposedFare);$('fareValue').textContent=String(proposedFare);});
+$('sfPrice').addEventListener('input',()=>{fareWasManuallyEdited=true;proposedFare=Math.max(0,Math.round(Number($('sfPrice').value)||0));if($('sfAutoPrice')) $('sfAutoPrice').textContent=String(proposedFare);$('fareValue').textContent=String(proposedFare);});
 $('sfAutoToggle').addEventListener('click',()=>{const on=$('sfAutoToggle').getAttribute('aria-pressed')!=='true';$('sfAutoToggle').setAttribute('aria-pressed',String(on));$('sfAutoToggle').classList.toggle('enabled',on);});
 let tripPassengerCount=1;let tripCommentText='';
 function openTripOptions(){ $('passengerCount').textContent=String(tripPassengerCount); $('tripComment').value=tripCommentText; $('tripOptionsModal').classList.add('open'); $('tripOptionsModal').setAttribute('aria-hidden','false'); }
