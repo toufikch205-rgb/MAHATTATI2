@@ -2888,6 +2888,21 @@ async function setUser(latlng,acc=80,requestId=locationRequestId){
   return address;
 }
 let locationRequestId=0;
+// Request phone location automatically on first app entry, after the map and page load.
+(function autoLocateOnEntry(){
+  let requested=false;
+  const run=()=>{
+    if(requested)return;
+    requested=true;
+    setTimeout(()=>{
+      try {
+        if(typeof locate==='function' && typeof map!=='undefined' && !userLatLng && !pickupMarker) locate();
+      } catch(error) { console.warn('[MAHATTATI] Automatic location request could not start:',error); }
+    },180);
+  };
+  if(document.readyState==='complete') run();
+  else window.addEventListener('load',run,{once:true});
+})();
 function locate(){
   if(window.MAHATTATI_LOCATION_ALLOWED===false){const msg=lang==='ar'?'تم رفض إذن الموقع. اسمح بالوصول إلى الموقع من صفحة إعداد الأذونات أولًا.':'Accès à la localisation refusé. Autorisez la localisation dans les paramètres des autorisations.';$('mapNote').textContent=msg;$('mapNote').classList.add('visible');toast(msg);return;}
   const requestId=++locationRequestId;
@@ -2934,9 +2949,10 @@ function locate(){
     navigator.geolocation.getCurrentPosition(success,err=>{
       if(requestId!==locationRequestId||finished)return;
       if(err&&err.code===1){finishError(err);return;}
-      try { navigator.geolocation.getCurrentPosition(success,finishError,{enableHighAccuracy:false,timeout:25000,maximumAge:60000}); }
+      // Fall back quickly to a cached/network location instead of waiting a long time for GPS.
+      try { navigator.geolocation.getCurrentPosition(success,finishError,{enableHighAccuracy:false,timeout:10000,maximumAge:120000}); }
       catch(e) { finishError({code:2}); }
-    },{enableHighAccuracy:true,timeout:18000,maximumAge:0});
+    },{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
   } catch(e) { finishError({code:2}); }
 }
 let mapSelectionRequestId=0;
