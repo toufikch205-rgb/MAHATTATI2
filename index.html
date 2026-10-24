@@ -3143,13 +3143,16 @@ async function checkPassengerRequestStatus(){
    stopRideSearchTimer();
    const modal=$('requestSentModal');
    if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');modal.style.setProperty('display','none','important');}
+   passengerDriverAcceptedAt=Date.now();
    const panel=ensurePassengerTrackingPanel();
    panel.style.display='block';
-   panel.style.zIndex='7000';
+   panel.style.zIndex='90000';
    panel.style.pointerEvents='auto';
-   panel.style.background='rgba(255,255,255,.98)';
    const text=panel.querySelector('#mahattatiDriverTrackingText');
-   if(text)text.textContent='تم قبول طلبك! السائق قادم إليك. جارٍ تحديث موقعه على الخريطة…';
+   if(text)text.textContent='تم قبول طلبك! جارٍ الاتصال بموقع السائق لحساب المسافة ووقت الوصول.';
+   updatePassengerTrackingClock();
+   if(passengerDriverLastLatLng)updatePassengerTrackingMetrics(passengerDriverLastLatLng.lat,passengerDriverLastLatLng.lng);
+   if(!window.mahattatiTrackingClockTimer)window.mahattatiTrackingClockTimer=setInterval(updatePassengerTrackingClock,1000);
    const {data:{user}}=await client.auth.getUser();
    if(user)await refreshPassengerTracking(user);
    toast('قبل السائق طلبك، وهو قادم إليك الآن.');
@@ -3899,13 +3902,35 @@ applyLang();setTimeout(()=>map.invalidateSize(),300);map.whenReady(()=>setTimeou
  };
  window.mahattatiLogout=async()=>{if(client){const {error}=await client.auth.signOut();if(error)throw error;}};
  let passengerTripChannel=null,passengerTrackingTimer=null,passengerTrackingTripId=null,passengerDriverMarker=null;
+ let passengerDriverAcceptedAt=Date.now(),passengerDriverLastLatLng=null;
  function ensurePassengerTrackingPanel(){
    let panel=document.getElementById('mahattatiDriverTracking');
    if(panel)return panel;
-   panel=document.createElement('div');panel.id='mahattatiDriverTracking';panel.dir='rtl';
-   panel.style.cssText='display:none;position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;z-index:5000;width:auto;max-width:520px;margin:0 auto;padding:14px 16px;border:1px solid #a8efc5;border-radius:20px;background:rgba(255,255,255,.97);color:#18231a;box-shadow:0 8px 28px #0002;font:15px/1.7 system-ui;text-align:right;pointer-events:none';
-   panel.innerHTML='<strong style="display:block;font-size:17px;color:#079447;margin-bottom:3px">🚗 السائق قادم إليك</strong><span id="mahattatiDriverTrackingText">بانتظار موقع السائق…</span>';
-   document.body.appendChild(panel);return panel;
+   panel=document.createElement('section');panel.id='mahattatiDriverTracking';panel.dir='rtl';
+   panel.style.cssText='display:none;position:fixed;inset:0;z-index:90000;background:#f7f9f6;color:#17211a;font-family:system-ui,-apple-system,sans-serif;overflow-y:auto;overscroll-behavior:contain;padding:calc(12px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));box-sizing:border-box';
+   panel.innerHTML='<header style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 18px"><button id="mahattatiTrackingClose" type="button" aria-label="إغلاق" style="width:44px;height:44px;border:0;border-radius:50%;background:white;font-size:25px;color:#26332a">×</button><div style="text-align:right"><small style="color:#159653;font-weight:800;letter-spacing:1px">MAHATTATI</small><h1 style="font-size:25px;line-height:1.25;margin:3px 0 0">السائق قادم إليك</h1></div><span style="font-size:30px">🚗</span></header><div style="border-radius:26px;background:#fff;padding:22px 18px;box-shadow:0 8px 28px #15251a0c;border:1px solid #e7eee8;text-align:center"><div style="width:76px;height:76px;margin:0 auto 12px;border-radius:50%;background:#e8fff0;color:#08c96a;display:grid;place-items:center;font-size:38px">✓</div><div style="font-size:19px;font-weight:800;margin-bottom:5px">تم قبول طلبك بنجاح</div><div id="mahattatiDriverTrackingText" style="font-size:15px;line-height:1.8;color:#69746c">السائق يستعد للتوجه إليك…</div><div style="display:flex;gap:10px;margin-top:20px"><div style="flex:1;background:#f5f7f1;border-radius:18px;padding:16px 8px"><div style="font-size:13px;color:#778078">الوقت منذ القبول</div><strong id="mahattatiTrackingElapsed" style="font-size:25px;display:block;margin-top:5px">00:00</strong></div><div style="flex:1;background:#eafff1;border-radius:18px;padding:16px 8px"><div style="font-size:13px;color:#47835c">المسافة المتبقية</div><strong id="mahattatiTrackingDistance" style="font-size:25px;display:block;margin-top:5px">— كم</strong></div></div><div style="margin-top:12px;border-radius:18px;background:#fff;border:1px solid #e7eee8;padding:17px;display:flex;align-items:center;gap:13px"><div style="font-size:28px">⏱️</div><div style="text-align:right;flex:1"><div style="font-size:13px;color:#7a857d">الوقت المتوقع لوصول السائق</div><strong id="mahattatiTrackingEta" style="font-size:21px">بانتظار موقع السائق</strong></div><span style="color:#09c96a;font-size:24px">●</span></div><div style="margin-top:14px;border-radius:20px;background:#eaf4e9;padding:18px;text-align:right"><strong style="font-size:16px">📍 تابع اقتراب السائق</strong><p style="font-size:14px;line-height:1.8;color:#536357;margin:7px 0 0">يتم تحديث موقع السائق تلقائيًا عند مشاركة موقعه. أبقِ التطبيق مفتوحًا للحصول على أحدث المعلومات.</p></div><button id="mahattatiTrackingBack" type="button" style="width:100%;margin-top:18px;border:0;border-radius:18px;background:#00e96b;color:#073b20;font-weight:800;font-size:18px;padding:17px">حسنًا، متابعة الرحلة</button>';
+   document.body.appendChild(panel);
+   const close=()=>{panel.style.display='none';};
+   panel.querySelector('#mahattatiTrackingClose').onclick=close;panel.querySelector('#mahattatiTrackingBack').onclick=close;
+   return panel;
+ }
+ function updatePassengerTrackingClock(){
+   const panel=document.getElementById('mahattatiDriverTracking');if(!panel)return;
+   const elapsed=Math.max(0,Math.floor((Date.now()-passengerDriverAcceptedAt)/1000));
+   const el=panel.querySelector('#mahattatiTrackingElapsed');if(el)el.textContent=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(elapsed%60).padStart(2,'0');
+ }
+ function updatePassengerTrackingMetrics(lat,lng){
+   const panel=ensurePassengerTrackingPanel();let pickup=null;
+   try{pickup=window.pickupMarker?.getLatLng?.()||window.userLatLng||null;}catch(e){}
+   if(!pickup&&window.map&&window.L){try{pickup=window.map.getCenter();}catch(e){}}
+   if(pickup&&Number.isFinite(Number(pickup.lat))&&Number.isFinite(Number(pickup.lng))){
+     const R=6371,rad=x=>x*Math.PI/180,dLat=(Number(pickup.lat)-lat)*Math.PI/180,dLng=(Number(pickup.lng)-lng)*Math.PI/180;
+     const a=Math.sin(dLat/2)**2+Math.cos(rad(lat))*Math.cos(rad(Number(pickup.lat)))*Math.sin(dLng/2)**2;
+     const km=2*R*Math.asin(Math.sqrt(Math.min(1,a)));
+     const d=panel.querySelector('#mahattatiTrackingDistance'),eta=panel.querySelector('#mahattatiTrackingEta');
+     if(d)d.textContent=km<1?Math.round(km*1000)+' م':km.toFixed(1)+' كم';
+     if(eta)eta.textContent=km<0.2?'السائق قريب جدًا منك':Math.max(2,Math.round(km/0.45))+'–'+Math.max(3,Math.round(km/0.3))+' دقيقة تقريبًا';
+   }
  }
  function clearPassengerTracking(){
    if(passengerTrackingTimer){clearInterval(passengerTrackingTimer);passengerTrackingTimer=null;}
@@ -3926,6 +3951,7 @@ applyLang();setTimeout(()=>map.invalidateSize(),300);map.whenReady(()=>setTimeou
      const lat=Number(data.latitude),lng=Number(data.longitude);
      if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
      text.textContent=(data.driver_name?'السائق '+data.driver_name+' قبل طلبك وهو قادم إليك. ':'السائق قبل طلبك وهو قادم إليك. ')+'يتم تحديث موقعه تلقائيًا.';
+     passengerDriverLastLatLng={lat,lng};updatePassengerTrackingMetrics(lat,lng);updatePassengerTrackingClock();
      if(window.map&&window.L){
        if(!passengerDriverMarker){passengerDriverMarker=window.L.circleMarker([lat,lng],{radius:9,color:'#17833b',weight:3,fillColor:'#00ff66',fillOpacity:.95}).addTo(window.map);passengerDriverMarker.bindPopup('السائق في الطريق إليك');}
        else passengerDriverMarker.setLatLng([lat,lng]);
