@@ -3215,16 +3215,27 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 (function(){
   function byId(id){return document.getElementById(id)}
   function openRequestPage(card){
-    var page=byId('mddRideRequestPage'); if(!page) return;
-    if(card && typeof window.mddPopulateRequest==='function') { try{window.mddPopulateRequest(card)}catch(e){console.error(e)} }
-    page.classList.add('open'); page.setAttribute('aria-hidden','false');
+    var page=byId('mddRideRequestPage');
+    if(!page)return;
+    if(card&&typeof window.mddPopulateRequest==='function'){
+      try{window.mddPopulateRequest(card)}catch(e){console.error('Populate request details:',e)}
+    }
+    page.classList.add('open');
+    page.setAttribute('aria-hidden','false');
     page.style.setProperty('display','block','important');
     page.style.setProperty('visibility','visible','important');
     page.style.setProperty('opacity','1','important');
-    document.body.style.overflow='hidden'; page.scrollTop=0;
+    page.style.setProperty('z-index','9000','important');
+    document.body.style.overflow='hidden';
+    page.scrollTop=0;
+    if(typeof window.mddPinNavAboveRequest==='function'){
+      try{window.mddPinNavAboveRequest()}catch(e){console.error('Pin driver navigation:',e)}
+    }
+    if(typeof window.mddMountRealHomeMapInRequest==='function'){
+      try{window.mddMountRealHomeMapInRequest()}catch(e){console.error('Mount request map:',e)}
+    }
   }
   function closeRequestPage(){
-    var page=byId('mddRideRequestPage'); if(page){page.classList.remove('open');page.setAttribute('aria-hidden','true');page.style.setProperty('display','none','important');page.style.removeProperty('visibility  function closeRequestPage(){
     var page=byId('mddRideRequestPage');
     if(page){
       page.classList.remove('open');
@@ -3246,11 +3257,22 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
       if(dash)dash.querySelectorAll('.mdd-heading,#mddOnlineHint,.mdd-rides').forEach(function(el){el.hidden=false;el.style.removeProperty('display')});
       if(typeof window.mddRestorePinnedNav==='function'){try{window.mddRestorePinnedNav()}catch(e){}}
     }
-  }t never open request details. */
-    var view=e.target.closest('#driverDashboardPage .mdd-view');
-    if(view){var card=view.closest('.mdd-ride');if(card){e.preventDefault();e.stopImmediatePropagation();openRequestPage(card);}}
+  }
+  document.addEventListener('click',function(e){
+    var target=e.target;
+    if(!target||typeof target.closest!=='function')return;
+    var back=target.closest('#mddRequestBack');
+    if(back){e.preventDefault();e.stopImmediatePropagation();closeRequestPage();return;}
+    var view=target.closest('#driverDashboardPage .mdd-view');
+    if(view){
+      var card=view.closest('.mdd-ride');
+      if(card){e.preventDefault();e.stopImmediatePropagation();openRequestPage(card);}
+    }
   },true);
-  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&byId('mddRideRequestPage')?.classList.contains('open'))closeRequestPage()});
+  document.addEventListener('keydown',function(e){
+    var page=byId('mddRideRequestPage');
+    if(e.key==='Escape'&&page&&page.classList.contains('open'))closeRequestPage();
+  });
 })();
 </script>
 
