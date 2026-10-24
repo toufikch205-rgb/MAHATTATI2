@@ -3034,17 +3034,63 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
    return {id:data.id,createdAt:Date.parse(data.created_at)||Date.now(),status:data.status};
  };
  window.mahattatiLogout=async()=>{if(client){const {error}=await client.auth.signOut();if(error)throw error;}};
- let passengerTripChannel=null;
+ let passengerTripChannel=null,passengerTrackingTimer=null,passengerTrackingTripId=null,passengerDriverMarker=null;
+ function ensurePassengerTrackingPanel(){
+   let panel=document.getElementById('mahattatiDriverTracking');
+   if(panel)return panel;
+   panel=document.createElement('div');panel.id='mahattatiDriverTracking';panel.dir='rtl';
+   panel.style.cssText='display:none;position:fixed;top:92px;left:12px;z-index:1800;width:min(260px,72vw);padding:12px 14px;border:1px solid #b7f34a;border-radius:16px;background:#fff;color:#18231a;box-shadow:0 8px 26px #0002;font:13px/1.7 system-ui';
+   panel.innerHTML='<strong style="display:block;font-size:14px">متابعة السائق</strong><span id="mahattatiDriverTrackingText">بانتظار موقع السائق…</span>';
+   document.body.appendChild(panel);return panel;
+ }
+ function clearPassengerTracking(){
+   if(passengerTrackingTimer){clearInterval(passengerTrackingTimer);passengerTrackingTimer=null;}
+   passengerTrackingTripId=null;
+   if(passengerDriverMarker&&window.map){try{window.map.removeLayer(passengerDriverMarker)}catch(e){}}
+   passengerDriverMarker=null;
+   const panel=document.getElementById('mahattatiDriverTracking');if(panel)panel.style.display='none';
+ }
+ async function updatePassengerDriverLocation(){
+   if(!passengerTrackingTripId||!client)return;
+   const panel=ensurePassengerTrackingPanel();panel.style.display='block';
+   try{
+     const {data,error}=await client.rpc('get_my_trip_driver_location',{p_request_id:passengerTrackingTripId});
+     if(error)throw error;
+     if(!data){panel.querySelector('#mahattatiDriverTrackingText').textContent='لا توجد رحلة نشطة لمتابعتها.';return;}
+     const text=panel.querySelector('#mahattatiDriverTrackingText');
+     if(data.latitude==null||data.longitude==null){text.textContent='تم قبول طلبك. ننتظر مشاركة موقع السائق…';return;}
+     const lat=Number(data.latitude),lng=Number(data.longitude);
+     if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+     text.textContent=(data.driver_name?'السائق: '+data.driver_name+' · ':'')+'موقع مباشر يتم تحديثه تلقائيًا.';
+     if(window.map&&window.L){
+       if(!passengerDriverMarker){passengerDriverMarker=window.L.circleMarker([lat,lng],{radius:9,color:'#17833b',weight:3,fillColor:'#00ff66',fillOpacity:.95}).addTo(window.map);passengerDriverMarker.bindPopup('السائق في الطريق إليك');}
+       else passengerDriverMarker.setLatLng([lat,lng]);
+     }
+   }catch(e){console.warn('Driver tracking unavailable:',e.message||e);const text=panel.querySelector('#mahattatiDriverTrackingText');if(text)text.textContent='تعذّرت قراءة موقع السائق مؤقتًا.';}
+ }
+ async function refreshPassengerTracking(user){
+   if(!user){clearPassengerTracking();return;}
+   try{
+     const {data,error}=await client.from('trip_requests').select('id,status').eq('user_id',user.id).in('status',['accepted','in_progress']).order('created_at',{ascending:false}).limit(1).maybeSingle();
+     if(error)throw error;
+     if(!data){clearPassengerTracking();return;}
+     if(passengerTrackingTripId!==data.id){passengerTrackingTripId=data.id;const panel=ensurePassengerTrackingPanel();panel.style.display='block';panel.querySelector('#mahattatiDriverTrackingText').textContent='تم قبول طلبك. جارٍ الاتصال بموقع السائق…';}
+     await updatePassengerDriverLocation();
+     if(!passengerTrackingTimer)passengerTrackingTimer=setInterval(updatePassengerDriverLocation,12000);
+   }catch(e){console.warn('Passenger tracking lookup failed:',e.message||e);}
+ }
  async function startPassengerRealtime(user){
    if(!client||!user)return;
    if(passengerTripChannel){try{await client.removeChannel(passengerTripChannel)}catch(e){}passengerTripChannel=null;}
+   await refreshPassengerTracking(user);
    passengerTripChannel=client.channel('mahattati-passenger-'+user.id)
-     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'trip_requests',filter:'user_id=eq.'+user.id},async payload=>{
+     .on('postgres_changes',{event:'*',schema:'public',table:'trip_requests',filter:'user_id=eq.'+user.id},async payload=>{
        try{
          const row=payload.new||{};
          const labels={pending:'قيد الانتظار',accepted:'قبل السائق طلبك',in_progress:'الرحلة جارية',completed:'اكتملت الرحلة',cancelled:'تم إلغاء الطلب'};
          const label=labels[row.status]||'تم تحديث حالة الطلب';
          await loadCloudRequests(user);
+         await refreshPassengerTracking(user);
          try{if(typeof window.showRequestHistory==='function')window.showRequestHistory();}catch(e){}
          try{if(typeof window.toast==='function')window.toast(label);else console.info('Mahattati:',label);}catch(e){}
        }catch(e){console.warn('Passenger realtime update failed:',e);}
@@ -3090,7 +3136,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
      say(friendly);
    }finally{busy=false;$('mauthSubmit').disabled=false;$('mauthSwitch').disabled=false;}
  });
- if(client){client.auth.getSession().then(async({data,error})=>{if(error)console.warn(error.message);if(data?.session?.user){const u=data.session.user;await enterAuthenticated(u);}});client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){if(passengerTripChannel){client.removeChannel(passengerTripChannel);passengerTripChannel=null;}/* Keep local display name; cloud access is revoked by the session. */}else if(event==='SIGNED_IN'&&session?.user){setTimeout(()=>enterAuthenticated(session.user),0);}});}
+ if(client){client.auth.getSession().then(async({data,error})=>{if(error)console.warn(error.message);if(data?.session?.user){const u=data.session.user;await enterAuthenticated(u);}});client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){if(passengerTripChannel){client.removeChannel(passengerTripChannel);passengerTripChannel=null;}clearPassengerTracking();/* Keep local display name; cloud access is revoked by the session. */}else if(event==='SIGNED_IN'&&session?.user){setTimeout(()=>enterAuthenticated(session.user),0);}});}
 })();
 </script>
 
