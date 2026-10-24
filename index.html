@@ -3121,7 +3121,47 @@ function startRideSearchTimer(){
  const tick=()=>{const elapsed=Math.max(0,Math.floor((Date.now()-rideSearchStartedAt)/1000));if(out)out.textContent=Math.floor(elapsed/60)+':'+String(elapsed%60).padStart(2,'0');};
  tick();rideSearchTimerId=setInterval(tick,1000);
 }
+
 function stopRideSearchTimer(){if(rideSearchTimerId){clearInterval(rideSearchTimerId);rideSearchTimerId=null;}}
+let passengerAcceptancePollId=null,passengerAcceptancePollTimer=null;
+function stopPassengerAcceptancePolling(){
+ if(passengerAcceptancePollTimer){clearInterval(passengerAcceptancePollTimer);passengerAcceptancePollTimer=null;}
+ passengerAcceptancePollId=null;
+}
+async function checkPassengerRequestStatus(){
+ const id=passengerAcceptancePollId,client=window.mahattatiSupabase;
+ if(!id||!client)return;
+ try{
+  const {data,error}=await client.from('trip_requests').select('id,status,driver_id').eq('id',id).maybeSingle();
+  if(error)throw error;
+  if(!data)return;
+  if(data.status==='accepted'||data.status==='in_progress'){
+   stopPassengerAcceptancePolling();
+   stopRideSearchTimer();
+   const modal=$('requestSentModal');
+   if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');}
+   const panel=ensurePassengerTrackingPanel();
+   panel.style.display='block';
+   const text=panel.querySelector('#mahattatiDriverTrackingText');
+   if(text)text.textContent='تم قبول طلبك! السائق قادم إليك. تُحدّث الخريطة موقعه تلقائيًا.';
+   const {data:{user}}=await client.auth.getUser();
+   if(user)await refreshPassengerTracking(user);
+   toast('قبل السائق طلبك، وهو قادم إليك الآن.');
+  }else if(['cancelled','completed','rejected','expired'].includes(data.status)){
+   stopPassengerAcceptancePolling();
+   stopRideSearchTimer();
+   const status=$('requestSearchStatus');
+   if(status)status.textContent=data.status==='cancelled'?'تم إلغاء الطلب.':data.status==='expired'?'انتهت مهلة الطلب.':'تم إنهاء الطلب.';
+  }
+ }catch(e){console.warn('Passenger request status polling failed:',e.message||e);}
+}
+function startPassengerAcceptancePolling(id){
+ stopPassengerAcceptancePolling();
+ passengerAcceptancePollId=id;
+ checkPassengerRequestStatus();
+ passengerAcceptancePollTimer=setInterval(checkPassengerRequestStatus,4000);
+}
+
 let requestSubmissionInProgress=false;
 async function submitTripRequest(){
  const modal=$('requestSentModal');
@@ -3171,6 +3211,7 @@ async function submitTripRequest(){
   proposedFare=request.price;
   modal.classList.add('open');modal.setAttribute('aria-hidden','false');
   startRideSearchTimer();
+  startPassengerAcceptancePolling(request.id);
   $('searchFareValue').textContent=String(request.price);$('searchAutoFare').textContent=String(request.price);$('searchCashFare').textContent=String(request.price);
   $('searchPickupLabel').textContent=request.pickup;$('searchDestinationLabel').textContent=request.destination;
   const searchStatus=$('requestSearchStatus'),driversHost=$('availableDriversResults');
@@ -3214,8 +3255,8 @@ $('searchFareMinus').addEventListener('click',()=>{
  $('searchFareValue').textContent=String(value);$('searchAutoFare').textContent=String(value);$('searchCashFare').textContent=String(value);setProposedFare(value);
 });
 $('searchAutoToggle').addEventListener('click',()=>{const b=$('searchAutoToggle'),on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(on));b.setAttribute('aria-label',on?'إيقاف القبول التلقائي':'تفعيل القبول التلقائي');});
-$('requestSentOkay').addEventListener('click',()=>{stopRideSearchTimer();$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');showRequestHistory();});
-$('requestSentModal').addEventListener('click',e=>{if(e.target===$('requestSentModal')){stopRideSearchTimer();$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');}});
+$('requestSentOkay').addEventListener('click',()=>{stopPassengerAcceptancePolling();stopRideSearchTimer();$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');showRequestHistory();});
+$('requestSentModal').addEventListener('click',e=>{if(e.target===$('requestSentModal')){stopPassengerAcceptancePolling();stopRideSearchTimer();$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');}});
 let proposedFare=500;
 let fareWasManuallyEdited=false;
 let lastCalculatedFareRouteKey='';
