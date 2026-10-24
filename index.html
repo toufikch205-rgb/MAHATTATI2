@@ -2023,7 +2023,7 @@ async function submitTripRequest(){
       let distance='';
       if(request.pickupLatitude!=null&&request.pickupLongitude!=null&&d.latitude!=null&&d.longitude!=null){
         const rad=x=>x*Math.PI/180,lat1=Number(request.pickupLatitude),lat2=Number(d.latitude),dl=rad(Number(d.longitude)-Number(request.pickupLongitude)),dp=rad(lat2-lat1);
-        const a=Math.sin(dp/2)**2+Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dp/2)**2;
+        const a=Math.sin(dp/2)**2+Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dl/2)**2;
         distance=' · '+(6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))).toFixed(1)+' كم تقريبًا';
       }
       const name=String(d.driver_name||'سائق محطتي').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
