@@ -1500,7 +1500,7 @@ body.mdd-request-nav-pinned #driverDashboardPage .mdd-nav, body.mdd-request-nav-
           <span class="vr-option-text">بطاقة رمادية دائمة</span><span class="vr-check" aria-hidden="true"></span>
         </button>
       </div>
-      <label style="display:block;margin-top:16px;font-weight:800" for="vehicleRegistrationDocumentInput">صورة البطاقة الرمادية / شهادة تسجيل المركبة</label><input id="vehicleRegistrationDocumentInput" type="file" accept="image/jpeg,image/png,image/webp" required style="display:block;width:100%;margin-top:8px;padding:10px;border:1px solid #e3e8e0;border-radius:12px">
+      <label style="display:block;margin-top:16px;font-weight:800" for="vehicleRegistrationDocumentInput">صورة البطاقة الرمادية / شهادة تسجيل المركبة</label><input id="vehicleRegistrationDocumentInput" type="file" accept="image/jpeg,image/png,image/webp" style="display:block;width:100%;margin-top:8px;padding:10px;border:1px solid #e3e8e0;border-radius:12px">
     </form>
   </main>
   <footer class="dsp-footer"><div class="dsp-progress-label"><strong id="vehicleRegistrationProgressLabel">3 من 4</strong></div><div class="dsp-progress"><span id="vehicleRegistrationProgressBar" style="width:75%"></span></div><div class="dsp-actions"><button id="vehicleRegistrationNext" type="submit" form="vehicleRegistrationForm">التالي　‹</button><button id="vehicleRegistrationBack" type="button">‹</button></div></footer>
@@ -2175,7 +2175,7 @@ function closeVehicleInfoPage(){const p=$('vehicleInfoPage');p.classList.remove(
 function updateSharedRegistrationSteps(){const temporary=$('vehicleRegistrationType')?.value==='temporary-grey-card';const total=temporary?5:4;[['driverSignupPage',1],['driverLicensePage',2]].forEach(([id,step])=>{const page=$(id);const strong=page?.querySelector('.dsp-progress-label strong');const bar=page?.querySelector('.dsp-progress span');if(strong)strong.textContent=step+' من '+total;if(bar)bar.style.width=(step/total*100)+'%';});setRegistrationProgress();}
 function setRegistrationProgress(){const temporary=$('vehicleRegistrationType').value==='temporary-grey-card';const total=temporary?5:4;const regLabel=$('vehicleRegistrationProgressLabel');const regBar=$('vehicleRegistrationProgressBar');if(regLabel)regLabel.textContent='3 من '+total;if(regBar)regBar.style.width=(3/total*100)+'%';const infoLabel=$('vehicleInfoProgressLabel');const infoBar=$('vehicleInfoProgressBar');if(infoLabel)infoLabel.textContent=(temporary?'5 من 5':'4 من 4');if(infoBar)infoBar.style.width='100%';}
 $('vehicleRegistrationType').addEventListener('change',updateSharedRegistrationSteps);
-$('vehicleRegistrationForm').addEventListener('submit',e=>{e.preventDefault();const type=$('vehicleRegistrationType').value;if(!type){$('vehicleRegistrationType').reportValidity();return;}setRegistrationProgress();if(type==='permanent-grey-card'){openVehicleInfoPage();return;}openTemporaryCardPage();});
+$('vehicleRegistrationForm').addEventListener('submit',e=>{e.preventDefault();const type=$('vehicleRegistrationType').value;if(!type){$('vehicleRegistrationType').reportValidity();return;}setRegistrationProgress();if(type==='permanent-grey-card'){if(!$('vehicleRegistrationDocumentInput')?.files?.length){toast('يرجى إضافة صورة البطاقة الرمادية قبل المتابعة.');$('vehicleRegistrationDocumentInput')?.click();return;}openVehicleInfoPage();return;}openTemporaryCardPage();});
 function openTemporaryCardPage(){setRegistrationProgress();const p=$('temporaryCardPage');p.classList.add('open');p.setAttribute('aria-hidden','false');$('vehicleRegistrationPage').classList.remove('open');$('vehicleRegistrationPage').setAttribute('aria-hidden','true');}
 function closeTemporaryCardPage(){const p=$('temporaryCardPage');p.classList.remove('open');p.setAttribute('aria-hidden','true');}
 // Validate step 4/5 explicitly on both button click and form submit, then close it before opening step 5/5.
@@ -2239,7 +2239,7 @@ $('driverAccessContinue').onclick=async()=>{
  const {data:existing,error:existingError}=await client.from('driver_applications').select('status').eq('user_id',user.id).maybeSingle();
  if(existingError){toast('تعذّر التحقق من ملف السائق: '+existingError.message);return;}
  if(existing){toast(existing.status==='approved'?'حسابك معتمد بالفعل.':'لديك ملف سائق قيد المراجعة أو تمت مراجعته.');if(existing.status==='approved')openDriverPermissionsPage();return;}
- const licenseFront=$('driverLicenseFrontInput')?.files?.[0],licenseBack=$('driverLicenseBackInput')?.files?.[0],registration=$('vehicleRegistrationDocumentInput')?.files?.[0];
+ const licenseFront=$('driverLicenseFrontInput')?.files?.[0],licenseBack=$('driverLicenseBackInput')?.files?.[0],registration=$('vehicleRegistrationDocumentInput')?.files?.[0]||$('temporaryCardPhotoInput')?.files?.[0];
  if(!licenseFront||!licenseBack){toast('أضف وجهي رخصة القيادة قبل إرسال الملف.');return;}
  if(!registration){toast('أضف صورة البطاقة الرمادية / شهادة تسجيل المركبة.');return;}
  const files=[licenseFront,licenseBack,registration];
