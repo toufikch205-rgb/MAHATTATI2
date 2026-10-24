@@ -3476,8 +3476,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 
 <style id="mahattati-merchant-styles">
-#merchantPortal,#merchantAdminPortal{position:fixed;inset:0;z-index:12000;display:none;background:#f5f8f5;color:#17251b;direction:rtl;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;overflow:auto;padding:calc(env(safe-area-inset-top) + 14px) 14px calc(env(safe-area-inset-bottom) + 18px)}
-#merchantPortal.open,#merchantAdminPortal.open{display:block}
+#merchantPortal,#merchantAdminPortal,#driverAdminPortal{position:fixed;inset:0;z-index:12000;display:none;background:#f5f8f5;color:#17251b;direction:rtl;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;overflow:auto;padding:calc(env(safe-area-inset-top) + 14px) 14px calc(env(safe-area-inset-bottom) + 18px)}
+#merchantPortal.open,#merchantAdminPortal.open,#driverAdminPortal.open{display:block}
 .merchant-shell{width:min(100%,620px);margin:0 auto;background:#fff;border:1px solid #e4ebe4;border-radius:22px;box-shadow:0 12px 36px #18301c12;overflow:hidden}
 .merchant-head{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:1px solid #edf1ed;background:#fff}
 .merchant-back{width:42px;height:42px;border:1px solid #e1e9e1;border-radius:13px;background:#f7faf7;font-size:24px;color:#263b2b}
@@ -3654,7 +3654,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  setTimeout(refreshStaffShortcut,900);
  document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('merchantPortal').classList.contains('open'))closePage('merchantPortal');if($('merchantAdminPortal').classList.contains('open'))closePage('merchantAdminPortal');}});
 })();
-
+</script>
 <script id="mahattati-driver-admin-script">
 (function(){
  'use strict';
@@ -3759,7 +3759,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('driverAdminPortal').classList.contains('open'))closePortal();});
  setTimeout(refreshShortcut,1100);
 })();
-</script>
 </script>
 </body>
 </html>
