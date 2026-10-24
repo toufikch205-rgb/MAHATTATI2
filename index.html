@@ -554,6 +554,32 @@ body.trip-page-active #tripMapPage { z-index: 1600; }
 .search-fare-control strong{font-size:clamp(27px,7vw,38px);font-weight:500;white-space:nowrap;color:#161616}
 #requestSentOkay{width:100%;min-height:66px;border:0;border-radius:25px;background:#f5f4eb;color:#171717;font:800 28px system-ui;cursor:pointer}
 #requestSentOkay:active{transform:scale(.985)}
+
+/* Compact responsive layout for the ride-search sheet */
+.request-sent-card{min-height:0;padding:10px 15px calc(14px + env(safe-area-inset-bottom));border-radius:28px 28px 0 0}
+.search-progress-card{max-height:calc(100dvh - 6px);overflow-y:auto;overscroll-behavior:contain}
+.search-progress-grabber{width:52px;height:6px;margin:0 auto 16px}
+.search-driver-banner{gap:8px;padding:8px 11px;margin:-2px -2px 10px;font-size:clamp(14px,3.7vw,19px);line-height:1.25;border-radius:16px}
+.search-driver-avatar{width:32px;height:32px;flex:0 0 32px;font-size:18px}
+.search-progress-heading{gap:9px}
+.search-progress-heading h2{font-size:clamp(22px,5.5vw,30px);margin-bottom:3px}
+.search-progress-heading p{font-size:clamp(14px,3.9vw,19px);line-height:1.35;margin-bottom:12px}
+#searchElapsed{font-size:clamp(21px,5.3vw,29px);white-space:nowrap}
+.search-progress-track{height:9px;margin-bottom:14px}
+.search-fare-control{gap:8px;padding:9px 11px;margin-bottom:9px;border-radius:22px}
+.search-fare-control button{width:46px;height:46px;flex-basis:46px;font-size:26px}
+.search-fare-control strong{font-size:clamp(23px,6vw,32px)}
+#requestSentOkay{min-height:52px;border-radius:18px;font-size:clamp(20px,5.2vw,26px)}
+.search-auto-accept{gap:8px;padding:9px 11px;margin:7px 0;font-size:clamp(13px,3.6vw,18px);line-height:1.3;border-radius:22px}
+.search-auto-icon{font-size:20px}
+.search-auto-accept button{width:52px;height:30px;flex-basis:52px}
+.search-auto-accept button i{width:24px;height:24px}
+.search-auto-accept button[aria-pressed="true"] i{transform:translateX(22px)}
+.search-cash-row{gap:9px;padding:9px 12px;margin:6px 0;font-size:clamp(15px,3.9vw,20px);border-radius:18px}
+.search-route-card{padding:9px 12px;margin:6px 0;font-size:clamp(14px,3.8vw,19px);line-height:1.45;border-radius:18px}
+#availableDriversResults{margin:6px 0!important;max-height:12vh!important;font-size:13px}
+@media(max-height:740px){.search-progress-grabber{margin-bottom:10px}.search-driver-banner{margin-bottom:7px}.search-progress-heading p{margin-bottom:8px}.search-progress-track{margin-bottom:10px}.search-fare-control{padding:7px 9px}.search-fare-control button{width:40px;height:40px;flex-basis:40px}#requestSentOkay{min-height:46px}.search-auto-accept,.search-cash-row,.search-route-card{margin-top:5px;margin-bottom:5px;padding-top:7px;padding-bottom:7px}}
+
 @media(min-width:600px){.request-sent-backdrop{align-items:center;padding:20px}.request-sent-card{border-radius:30px}}
 </style>
 <style id="mahattati-visual-consistency-polish">
@@ -3087,6 +3113,15 @@ $('destinationSearchButton').onclick=searchDestinationPlaces;$('destinationSearc
 function showTripMapPage(){document.body.classList.add('trip-page-active');const page=$('tripMapPage');page.classList.add('open');page.setAttribute('aria-hidden','false');$('tripPagePickup').textContent=$('modalPickupInput').value||$('pickupInput').value||'موقعي الحالي';$('tripPageDestination').textContent=$('modalDestInput').value||$('destInput').value||'الوجهة';setTimeout(()=>{map.invalidateSize();if(pickupMarker&&destMarker){drawSelectedRoute();}},180);}
 function hideTripMapPage(){const page=$('tripMapPage');page.classList.remove('open');page.setAttribute('aria-hidden','true');document.body.classList.remove('trip-page-active');setTimeout(()=>map.invalidateSize(),80);}
 $('tripPageBack').onclick=hideTripMapPage;$('tripPageEdit').onclick=()=>{hideTripMapPage();openRouteModal();};$('tripFareEdit').onclick=openSuggestFarePage;$('tripFilters').onclick=()=>openTripOptions();
+let rideSearchStartedAt=0,rideSearchTimerId=null;
+function startRideSearchTimer(){
+ if(rideSearchTimerId)clearInterval(rideSearchTimerId);
+ rideSearchStartedAt=Date.now();
+ const out=$('searchElapsed');
+ const tick=()=>{const elapsed=Math.max(0,Math.floor((Date.now()-rideSearchStartedAt)/1000));if(out)out.textContent=Math.floor(elapsed/60)+':'+String(elapsed%60).padStart(2,'0');};
+ tick();rideSearchTimerId=setInterval(tick,1000);
+}
+function stopRideSearchTimer(){if(rideSearchTimerId){clearInterval(rideSearchTimerId);rideSearchTimerId=null;}}
 let requestSubmissionInProgress=false;
 async function submitTripRequest(){
  const modal=$('requestSentModal');
@@ -3135,6 +3170,7 @@ async function submitTripRequest(){
   requests.unshift(request);localStorage.setItem('mahattati_requests',JSON.stringify(requests.slice(0,200)));
   proposedFare=request.price;
   modal.classList.add('open');modal.setAttribute('aria-hidden','false');
+  startRideSearchTimer();
   $('searchFareValue').textContent=String(request.price);$('searchAutoFare').textContent=String(request.price);$('searchCashFare').textContent=String(request.price);
   $('searchPickupLabel').textContent=request.pickup;$('searchDestinationLabel').textContent=request.destination;
   const searchStatus=$('requestSearchStatus'),driversHost=$('availableDriversResults');
@@ -3178,8 +3214,8 @@ $('searchFareMinus').addEventListener('click',()=>{
  $('searchFareValue').textContent=String(value);$('searchAutoFare').textContent=String(value);$('searchCashFare').textContent=String(value);setProposedFare(value);
 });
 $('searchAutoToggle').addEventListener('click',()=>{const b=$('searchAutoToggle'),on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(on));b.setAttribute('aria-label',on?'إيقاف القبول التلقائي':'تفعيل القبول التلقائي');});
-$('requestSentOkay').addEventListener('click',()=>{$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');showRequestHistory();});
-$('requestSentModal').addEventListener('click',e=>{if(e.target===$('requestSentModal')){$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');}});
+$('requestSentOkay').addEventListener('click',()=>{stopRideSearchTimer();$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');showRequestHistory();});
+$('requestSentModal').addEventListener('click',e=>{if(e.target===$('requestSentModal')){stopRideSearchTimer();$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');}});
 let proposedFare=500;
 let fareWasManuallyEdited=false;
 let lastCalculatedFareRouteKey='';
