@@ -1396,7 +1396,8 @@ body.mdd-request-nav-pinned #driverDashboardPage .mdd-nav, body.mdd-request-nav-
 <div class="request-sent-card" dir="rtl">
 <div aria-hidden="true" class="request-sent-icon">✓</div>
 <h2 id="requestSentTitle">تم إرسال طلبك</h2>
-<p>سيتصل بك أقرب سائق.</p>
+<p id="requestSearchStatus" aria-live="polite">جارٍ البحث عن السائقين المتاحين وإرسال طلبك إليهم…</p>
+<div id="availableDriversResults" style="margin:12px 0;max-height:32vh;overflow:auto;text-align:right"></div>
 <button id="requestSentOkay" type="button">حسنًا</button>
 </div>
 </div>
@@ -2010,7 +2011,30 @@ async function submitTripRequest(){
   requests.unshift(request);localStorage.setItem('mahattati_requests',JSON.stringify(requests.slice(0,200)));
   proposedFare=request.price;
   modal.classList.add('open');modal.setAttribute('aria-hidden','false');
-  toast('تم إرسال الطلب للسائقين القريبين.');
+  const searchStatus=$('requestSearchStatus'),driversHost=$('availableDriversResults');
+  if(searchStatus)searchStatus.textContent='تم إرسال طلبك للسائقين المتصلين. جارٍ جلب السائقين المتاحين…';
+  if(driversHost)driversHost.innerHTML='<p style="padding:10px;color:#657065">جارٍ البحث…</p>';
+  try{
+    const {data:drivers,error:driversError}=await client.rpc('list_available_drivers',{p_service_type:request.serviceType||'economy'});
+    if(driversError)throw driversError;
+    const available=Array.isArray(drivers)?drivers:[];
+    if(searchStatus)searchStatus.textContent=available.length?'تم إرسال طلبك. هؤلاء السائقون متصلون ومتاحون حاليًا؛ قبول الرحلة يعتمد على استجابة السائق.':'تم إرسال طلبك، لكن لا يوجد سائق متاح ظاهر الآن. سيبقى الطلب قيد الانتظار.';
+    if(driversHost)driversHost.innerHTML=available.length?available.map(d=>{
+      let distance='';
+      if(request.pickupLatitude!=null&&request.pickupLongitude!=null&&d.latitude!=null&&d.longitude!=null){
+        const rad=x=>x*Math.PI/180,lat1=Number(request.pickupLatitude),lat2=Number(d.latitude),dl=rad(Number(d.longitude)-Number(request.pickupLongitude)),dp=rad(lat2-lat1);
+        const a=Math.sin(dp/2)**2+Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dp/2)**2;
+        distance=' · '+(6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))).toFixed(1)+' كم تقريبًا';
+      }
+      const name=String(d.driver_name||'سائق محطتي').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px;margin:7px 0;border:1px solid #e4eee2;border-radius:12px;background:#f8fff7"><span style="font-size:22px">🚗</span><div><strong>'+name+'</strong><div style="font-size:12px;color:#687568">متصل ومتاح'+distance+'</div></div><span style="margin-right:auto;color:#16b95c;font-weight:800">متاح</span></div>';
+    }).join(''):'<p style="padding:10px;color:#657065">لا يوجد سائق متصل ومتاح لهذه الخدمة في الوقت الحالي.</p>';
+  }catch(driverLookupError){
+    console.warn('Available driver lookup failed:',driverLookupError);
+    if(searchStatus)searchStatus.textContent='تم إرسال طلبك للسائقين. تعذّر عرض قائمة السائقين المتاحين حاليًا.';
+    if(driversHost)driversHost.innerHTML='<p style="padding:10px;color:#657065">سيبقى طلبك قيد الانتظار حتى يردّ أحد السائقين.</p>';
+  }
+  toast('تم إرسال الطلب للسائقين المتصلين.');
  }catch(e){
   console.error('Mahattati trip submission failed:',e);
   toast(e?.message||'تعذّر إرسال الطلب إلى قاعدة البيانات. حاول مجددًا.');
