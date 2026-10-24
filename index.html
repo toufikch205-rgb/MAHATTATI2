@@ -2831,15 +2831,19 @@ async function drawSelectedRoute(){
   });
 
   updateRouteSummary(route.distance, route.duration, 'ready');
-  // Automatic suggested fare: 25 DZD per routed kilometre, rounded to the nearest 50 DZD.
-  // Keep the customer's own price if they have manually edited it.
-  if (!fareWasManuallyEdited) {
-    const calculatedFare = Math.max(100, Math.round((route.distance / 1000 * 25) / 50) * 50);
-    setProposedFare(calculatedFare);
-    if ($('fareRouteMeta')) $('fareRouteMeta').textContent = lang === 'ar'
-      ? (route.distance / 1000).toLocaleString('ar-DZ', {maximumFractionDigits:1}) + ' كم × 25 دج للكيلومتر'
-      : (route.distance / 1000).toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' km × 25 DA/km';
+  // Calculate once for every new A-to-B route. Later manual edits stay intact until either endpoint changes.
+  const currentFareRouteKey = [start.lat,start.lng,end.lat,end.lng].map(n=>Number(n).toFixed(5)).join('|');
+  if (currentFareRouteKey !== lastCalculatedFareRouteKey) {
+    lastCalculatedFareRouteKey = currentFareRouteKey;
+    fareWasManuallyEdited = false;
   }
+  if (!fareWasManuallyEdited || currentFareRouteKey !== lastCalculatedFareRouteKey) {
+    const calculatedFare = Math.max(50, Math.round((route.distance / 1000 * 25) / 50) * 50);
+    setProposedFare(calculatedFare);
+  }
+  if ($('fareRouteMeta')) $('fareRouteMeta').textContent = lang === 'ar'
+    ? (route.distance / 1000).toLocaleString('ar-DZ', {maximumFractionDigits:1}) + ' كم × 25 دج للكيلومتر'
+    : (route.distance / 1000).toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' km × 25 DA/km';
   const km = (route.distance / 1000).toLocaleString(
     lang === 'ar' ? 'ar-DZ' : 'fr-FR', { maximumFractionDigits: 1 }
   );
@@ -3153,6 +3157,7 @@ $('requestSentOkay').addEventListener('click',()=>{$('requestSentModal').classLi
 $('requestSentModal').addEventListener('click',e=>{if(e.target===$('requestSentModal')){$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');}});
 let proposedFare=500;
 let fareWasManuallyEdited=false;
+let lastCalculatedFareRouteKey='';
 let lastFareRouteKey='';
 function setProposedFare(value){
  proposedFare=Math.max(0,Math.round(Number(value)||0));
