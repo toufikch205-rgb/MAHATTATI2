@@ -2763,7 +2763,7 @@ async function drawSelectedRoute(){
   ];
   const fetchRoute = async (url) => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
+    const timer = setTimeout(() => controller.abort(), 5500);
     try {
       const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' }, cache: 'no-store' });
       if (!response.ok) throw new Error('Routing service HTTP ' + response.status);
@@ -2780,20 +2780,44 @@ async function drawSelectedRoute(){
     } finally { clearTimeout(timer); }
   };
 
+  // Ask both public routing services at once; use the first valid road route.
   let result = null;
   let lastRouteError = null;
-  for (const provider of providers) {
-    if (requestId !== routeRequestId) return;
-    try { result = await fetchRoute(provider); break; }
-    catch (error) { lastRouteError = error; }
+  try {
+    result = await Promise.any(providers.map(provider => fetchRoute(provider).catch(error => {
+      lastRouteError = error;
+      throw error;
+    })));
+  } catch (error) {
+    lastRouteError = error || lastRouteError;
   }
   if (requestId !== routeRequestId) return;
   if (!result) {
-    console.warn('[MAHATTATI] Road routing failed on all providers:', lastRouteError);
-    updateRouteSummary(0, 0, 'error');
+    console.warn('[MAHATTATI] Road routing failed; drawing a direct fallback line:', lastRouteError);
+    // Never leave the user without a visible route: show a direct, dashed estimate if road routing is offline.
+    const points = [[start.lat, start.lng], [end.lat, end.lng]];
+    routeOutline = L.polyline(points, {
+      color: '#ffffff', weight: 9, opacity: .95,
+      lineCap: 'round', lineJoin: 'round', interactive: false
+    }).addTo(map);
+    routeLine = L.polyline(points, {
+      color: '#00D968', weight: 5, opacity: .95, dashArray: '9 9',
+      lineCap: 'round', lineJoin: 'round', interactive: false
+    }).addTo(map);
+    routeOutline.bringToFront();
+    routeLine.bringToFront();
+    if (pickupMarker) pickupMarker.setZIndexOffset(1200);
+    if (destMarker) destMarker.setZIndexOffset(1300);
+    const bounds = L.latLngBounds(start, end).pad(.22);
+    map.fitBounds(bounds, { maxZoom: mode === 'intercity' ? 10 : 16, animate: true });
+    const rad = value => value * Math.PI / 180;
+    const dLat = rad(end.lat - start.lat), dLng = rad(end.lng - start.lng);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(start.lat)) * Math.cos(rad(end.lat)) * Math.sin(dLng / 2) ** 2;
+    const directKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    if ($('routeSummaryBadge')) $('routeSummaryBadge').hidden = true;
     toast(lang === 'ar'
-      ? 'خدمة رسم الطريق غير متاحة مؤقتًا. أعد المحاولة بعد لحظات.'
-      : 'Le service de calcul d’itinéraire est temporairement indisponible. Réessayez dans un instant.');
+      ? 'تم إظهار مسار مباشر مؤقتًا (' + directKm.toLocaleString('ar-DZ',{maximumFractionDigits:1}) + ' كم). المسافة ليست حسب الطرق.'
+      : 'Ligne directe temporaire (' + directKm.toLocaleString('fr-FR',{maximumFractionDigits:1}) + ' km), distance routière indisponible.');
     return;
   }
   const { route, points, snapDistances } = result;
