@@ -1448,12 +1448,12 @@ body.mdd-request-nav-pinned #driverDashboardPage .mdd-nav, body.mdd-request-nav-
 
 <div id="driverDashboardPage" aria-hidden="true" dir="rtl">
 <header class="mdd-topbar"><button id="mddSettings" class="mdd-icon" aria-label="الإعدادات" type="button">⚙</button><button id="mddStatus" class="mdd-status" type="button" aria-pressed="false"><i></i><span>غير متصل</span><b>⌄</b></button><button id="mddMenu" class="mdd-icon" aria-label="القائمة" type="button">☰</button></header>
-<main class="mdd-main"><div class="mdd-heading"><div><small>MAHATTATI · السائق الشريك</small><h1>طلبات الرحلات</h1></div></div><div id="mddOnlineHint" class="mdd-hint"><i></i><span>أنت غير متصل. غيّر حالتك لاستقبال الطلبات.</span></div><section class="mdd-rides" aria-label="الرحلات المتاحة">
+<main class="mdd-main"><div class="mdd-heading"><div><small>MAHATTATI · السائق الشريك</small><h1>طلبات الرحلات</h1></div></div><div class="mdd-demo-tag" role="note" style="display:block;margin:0 0 10px;text-align:center">الطلبات المعروضة تجريبية وليست طلبات حقيقية.</div><div id="mddOnlineHint" class="mdd-hint"><i></i><span>أنت غير متصل. غيّر حالتك لاستقبال الطلبات.</span></div><section class="mdd-rides" aria-label="الرحلات المتاحة">
 <article class="mdd-ride"><div class="mdd-ride-top"><strong>150 <small>دج</small></strong><span>↗ 1.3 كم</span></div><div class="mdd-route"><div><small>الاستلام</small><b>منطقة العباسية</b><small>التوصيل</small><b>الحرام</b></div></div><button class="mdd-view" type="button">عرض الطلب　←</button></article>
-<article class="mdd-ride"><div class="mdd-ride-top"><strong>138 <small>دج</small></strong><span>↗ 1.5 كم</span></div><div class="mdd-route"><div><small>الاستلام</small><b>العباسية</b><small>التوصيل</small><b>طريق الإسماعيلية / العبور</b></div></div><button class="mdd-view" type="button">عرض الطلب　←</button></article>
-<article class="mdd-ride"><div class="mdd-ride-top"><strong>49 <small>دج</small></strong><label>السعر العادل</label><span>↗ 1.5 كم</span></div><div class="mdd-route"><div><small>الاستلام</small><b>امتداد رمسيس</b><small>التوصيل</small><b>مدينة نصر / مسجد أبو المكارم الزغل</b></div></div><button class="mdd-view" type="button">عرض الطلب　←</button></article>
-<article class="mdd-ride"><div class="mdd-ride-top"><strong>90 <small>دج</small></strong><label>السعر العادل</label><span>↗ 1.5 كم</span></div><div class="mdd-route"><div><small>التوصيل</small><b>نادي السكة الحديد بمدينة نصر</b></div></div><button class="mdd-view" type="button">عرض الطلب　←</button></article>
-<article class="mdd-ride"><div class="mdd-ride-top"><strong>90 <small>دج</small></strong><span>↗ 1.6 كم</span></div><div class="mdd-route"><div><small>التوصيل</small><b>شارع النصر بمدينة نصر</b></div></div><button class="mdd-view" type="button">عرض الطلب　←</button></article>
+<article class="mdd-ride"><div class="mdd-ride-top"><strong>138 <small>دج</small></strong><span>↗ 1.5 كم</span></div><div class="mdd-route"><div><small>الاستلام</small><b>العباسية</b><small>التوصيل</small><b>شارع العربي بن مهيدي، وهران</b></div></div><button class="mdd-view" type="button">عرض الطلب　←</button></article>
+<article class="mdd-ride"><div class="mdd-ride-top"><strong>49 <small>دج</small></strong><label>السعر العادل</label><span>↗ 1.5 كم</span></div><div class="mdd-route"><div><small>الاستلام</small><b>السانية، وهران</b><small>التوصيل</small><b>جامعة وهران 2</b></div></div><button class="mdd-view" type="button">عرض الطلب　←</button></article>
+<article class="mdd-ride"><div class="mdd-ride-top"><strong>90 <small>دج</small></strong><label>السعر العادل</label><span>↗ 1.5 كم</span></div><div class="mdd-route"><div><small>التوصيل</small><b>محطة القطار، وهران</b></div></div><button class="mdd-view" type="button">عرض الطلب　←</button></article>
+<article class="mdd-ride"><div class="mdd-ride-top"><strong>90 <small>دج</small></strong><span>↗ 1.6 كم</span></div><div class="mdd-route"><div><small>التوصيل</small><b>شارع الأمير عبد القادر، وهران</b></div></div><button class="mdd-view" type="button">عرض الطلب　←</button></article>
 </section>
 <section id="mddWalletPage" class="mdd-wallet-page" aria-label="المحفظة" hidden style="display:none" aria-hidden="true">
   <div class="mdd-wallet-header"><button id="mddWalletMenu" type="button" aria-label="القائمة">=</button><h1>المحفظة</h1><span aria-hidden="true"></span></div>
@@ -2901,19 +2901,24 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
  $id('masRegisterDriver').addEventListener('click',()=>notify('تسجيل السائق يحتاج إلى استكمال نموذج وربطه بالخادم'));
  $id('masLegalDocs').addEventListener('click',()=>{const msg='المستندات القانونية\nسياسة الخصوصية وشروط الاستخدام تحتاج إلى إضافة روابطها الرسمية.';alert(msg)});
  $id('masAppVersion').addEventListener('click',()=>notify('إصدار التطبيق: 1.0.0'));
- $id('masDeleteAccount').addEventListener('click',()=>{
-   try{sessionStorage.removeItem('mahattati_welcome_seen')}catch(e){}
-   const welcome=document.getElementById('mahattatiWelcome');
-   if(welcome){
-     welcome.hidden=false;
+ $id('masDeleteAccount').addEventListener('click',async()=>{
+   const button=$id('masDeleteAccount');
+   button.disabled=true;
+   try{
+     if(typeof window.mahattatiLogout==='function') await window.mahattatiLogout();
+     try{sessionStorage.removeItem('mahattati_welcome_seen')}catch(e){}
+     page.classList.remove('open');
+     page.setAttribute('aria-hidden','true');
      document.body.style.overflow='hidden';
      document.getElementById('menuBackdrop')?.classList.remove('open');
-     document.getElementById('accountPage')?.classList.remove('active');
-     document.getElementById('historyPage')?.classList.remove('active');
-     window.scrollTo({top:0,behavior:'smooth'});
-   }else{
-     location.reload();
-   }
+     document.getElementById('requestHistoryPage')?.classList.remove('open');
+     const welcome=document.getElementById('mahattatiWelcome');
+     if(welcome){welcome.hidden=false;welcome.setAttribute('aria-hidden','false');}
+     else location.reload();
+   }catch(error){
+     notify('تعذر تسجيل الخروج من الحساب. تحقق من الاتصال ثم أعد المحاولة.');
+     console.error('MAHATTATI sign-out failed:',error);
+   }finally{button.disabled=false;}
  });
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&page.classList.contains('open'))closeSettings();});
  // The account tab opens this dedicated settings page rather than the side menu.
@@ -3767,8 +3772,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  setTimeout(refreshShortcut,1100);
 })();
 </script>
-</body>
-</html>
 <style id="mahattati-trip-screen-final-polish">
 /* Trip selection screen: consistent spacing, readable route rows, and safe bottom actions */
 #tripMapPage .trip-top-card{
@@ -4275,10 +4278,18 @@ input,textarea,select{min-width:0;max-width:100%}
   const selectors = '#menuMerchant, #menuMerchantAdmin, #menuDriverAdmin, .merchant-menu-button, .merchant-admin-button';
   function hideUnwantedMenuButtons(){
     document.querySelectorAll(selectors).forEach(function(el){
-      el.hidden = true;
-      el.style.setProperty('display','none','important');
-      el.style.setProperty('visibility','hidden','important');
-      el.setAttribute('aria-hidden','true');
+      if (!el.hidden) el.hidden = true;
+      if (el.style.getPropertyValue('display') !== 'none' ||
+          el.style.getPropertyPriority('display') !== 'important') {
+        el.style.setProperty('display','none','important');
+      }
+      if (el.style.getPropertyValue('visibility') !== 'hidden' ||
+          el.style.getPropertyPriority('visibility') !== 'important') {
+        el.style.setProperty('visibility','hidden','important');
+      }
+      if (el.getAttribute('aria-hidden') !== 'true') {
+        el.setAttribute('aria-hidden','true');
+      }
     });
   }
   hideUnwantedMenuButtons();
@@ -4290,3 +4301,6 @@ input,textarea,select{min-width:0;max-width:100%}
   });
 })();
 </script>
+
+</body>
+</html>
