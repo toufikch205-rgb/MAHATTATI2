@@ -2747,15 +2747,18 @@ async function drawSelectedRoute(){
   if (!start || !end) { if($('routeSummaryBadge'))$('routeSummaryBadge').hidden=true; return; }
   updateRouteSummary(0,0,"pending");
 
+  const routePath = `${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=true&alternatives=false`;
   const providers = [
-    `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=true&alternatives=false`,
-    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=true&alternatives=false`
+    `https://router.project-osrm.org/route/v1/driving/${routePath}`,
+    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${routePath}`,
+    `https://router.project-osrm.org/route/v1/driving/${routePath}`,
+    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${routePath}`
   ];
 
   for (const url of providers) {
     if (requestId !== routeRequestId) return;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
+    const timer = setTimeout(() => controller.abort(), 12000);
     try {
       // Keep the timeout active until the response body has also been read.
       const response = await fetch(url, {
@@ -2971,7 +2974,7 @@ $('destinationSearchBack').onclick=()=>{$('destinationModalSearch').classList.re
 let destinationSearchTimer;
 async function searchDestinationPlaces(){const q=$('destinationSearchInput').value.trim();if(q.length<2){$('destinationSearchResults').innerHTML='<div class="pickup-search-status">اكتب حرفين على الأقل للبحث</div>';return;}$('destinationSearchResults').innerHTML='<div class="pickup-search-status">جارٍ البحث…</div>';try{const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&accept-language='+(lang==='ar'?'ar':'fr')+'&q='+encodeURIComponent(q);const res=await fetch(url,{headers:{'Accept':'application/json'}});if(!res.ok)throw new Error('search');const places=await res.json();const box=$('destinationSearchResults');box.innerHTML='';if(!places.length){box.innerHTML='<div class="pickup-search-status">لم يتم العثور على نتائج</div>';return;}places.forEach(place=>{const b=document.createElement('button');b.type='button';b.className='pickup-search-result';b.textContent=place.display_name;b.onclick=()=>{const ll=L.latLng(Number(place.lat),Number(place.lon));if(destMarker)map.removeLayer(destMarker);destMarker=L.marker(ll,{icon:divIcon('<div class="custom-pin red"></div>',[28,28],[14,25])}).addTo(map);setDestinationLabel(place.display_name);drawSelectedRoute();$('destinationModalSearch').classList.remove('open');$('modalDestField').classList.remove('dest-active');closeRouteModal();showTripMapPage();map.setView(ll,15,{animate:true});if(pickupMarker){const bounds=L.latLngBounds(pickupMarker.getLatLng(),ll).pad(.22);map.fitBounds(bounds,{maxZoom:15,animate:true});}else if(userLatLng){map.fitBounds(L.latLngBounds(userLatLng,ll).pad(.22),{maxZoom:15,animate:true});}toast('تم تحديد الوجهة وعرضها على الخريطة');};box.appendChild(b);});}catch(err){$('destinationSearchResults').innerHTML='<div class="pickup-search-status">تعذر البحث الآن. تحقق من الاتصال وحاول مجددًا.</div>';}}
 $('destinationSearchInput').addEventListener('input',()=>{clearTimeout(destinationSearchTimer);destinationSearchTimer=setTimeout(searchDestinationPlaces,450);});$('destinationSearchButton').onclick=searchDestinationPlaces;$('destinationSearchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchDestinationPlaces();}});
-function showTripMapPage(){document.body.classList.add('trip-page-active');const page=$('tripMapPage');page.classList.add('open');page.setAttribute('aria-hidden','false');$('tripPagePickup').textContent=$('modalPickupInput').value||$('pickupInput').value||'موقعي الحالي';$('tripPageDestination').textContent=$('modalDestInput').value||$('destInput').value||'الوجهة';setTimeout(()=>{map.invalidateSize();if(pickupMarker&&destMarker){drawSelectedRoute();map.fitBounds(L.latLngBounds(pickupMarker.getLatLng(),destMarker.getLatLng()).pad(.22),{maxZoom:15,animate:true});}},100);}
+function showTripMapPage(){document.body.classList.add('trip-page-active');const page=$('tripMapPage');page.classList.add('open');page.setAttribute('aria-hidden','false');$('tripPagePickup').textContent=$('modalPickupInput').value||$('pickupInput').value||'موقعي الحالي';$('tripPageDestination').textContent=$('modalDestInput').value||$('destInput').value||'الوجهة';setTimeout(()=>{map.invalidateSize();if(pickupMarker&&destMarker){drawSelectedRoute();}},180);}
 function hideTripMapPage(){const page=$('tripMapPage');page.classList.remove('open');page.setAttribute('aria-hidden','true');document.body.classList.remove('trip-page-active');setTimeout(()=>map.invalidateSize(),80);}
 $('tripPageBack').onclick=hideTripMapPage;$('tripPageEdit').onclick=()=>{hideTripMapPage();openRouteModal();};$('tripFareEdit').onclick=openSuggestFarePage;$('tripFilters').onclick=()=>openTripOptions();
 let requestSubmissionInProgress=false;
