@@ -2231,7 +2231,7 @@ function mddRestoreRealHomeMap(){try{if(window.map)window.map.invalidateSize({pa
 function mddShowTab(tab){mddRestoreRealHomeMap();mddRestorePinnedNav();const wallet=$('mddWalletPage'),earnings=$('mddEarningsPage'),ratings=$('mddRatingsPage'),heading=document.querySelector('#driverDashboardPage .mdd-heading'),hint=$('mddOnlineHint'),rides=document.querySelector('#driverDashboardPage .mdd-rides'),nav=document.querySelector('#driverDashboardPage .mdd-nav'),requestPage=$('mddRideRequestPage'),isWallet=tab==='المحفظة',isEarnings=tab==='أرباحي',isRatings=tab==='تقييمات'||tab==='أيام',isRequest=tab==='طلبات الركوب'||tab==='الطلب';[[wallet,isWallet,'mdd-wallet-open'],[earnings,isEarnings,'mdd-earnings-open'],[ratings,isRatings,'mdd-ratings-open']].forEach(([el,show,cls])=>{if(!el)return;el.hidden=!show;el.classList.toggle(cls,show);el.style.setProperty('display',show?'block':'none','important');el.setAttribute('aria-hidden',String(!show));});if(heading)heading.hidden=isWallet||isEarnings||isRatings;if(hint)hint.hidden=isWallet||isEarnings||isRatings;if(rides)rides.hidden=isWallet||isEarnings||isRatings;if(requestPage){requestPage.classList.remove('open');requestPage.setAttribute('aria-hidden','true');}if(nav){nav.hidden=false;nav.style.setProperty('display','grid','important');nav.setAttribute('aria-hidden','false');}document.querySelectorAll('#driverDashboardPage .mdd-nav button').forEach(x=>{const active=x.dataset.tab===tab;x.classList.toggle('active',active);x.setAttribute('aria-current',active?'page':'false')});}
 document.querySelectorAll('#driverDashboardPage .mdd-nav button').forEach(b=>{b.addEventListener('click',()=>mddShowTab(b.dataset.tab));});const mddWalletNav=document.querySelector('#driverDashboardPage .mdd-nav button[data-tab="المحفظة"]');if(mddWalletNav)mddWalletNav.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();mddShowTab('المحفظة');}); function mddPopulateRequest(card){card=card||document.querySelector('#driverDashboardPage .mdd-ride');if(!card)return;const price=card.querySelector('.mdd-ride-top strong'),distance=card.querySelector('.mdd-ride-top>span'),labels=[...card.querySelectorAll('.mdd-route small')].map(x=>x.textContent.trim()),names=[...card.querySelectorAll('.mdd-route b')].map(x=>x.textContent.trim());let pickup='',dropoff='';labels.forEach((label,i)=>{if(label.includes('الاستلام'))pickup=names[i]||'';if(label.includes('التوصيل'))dropoff=names[i]||'';});if(!pickup&&names.length)pickup=names[0];if(!dropoff&&names.length>1)dropoff=names[names.length-1];const p=price?price.childNodes[0].textContent.trim():'150';$('mddRequestPrice').innerHTML=p+' <span>دج</span>';$('mddRequestDriverDistance').textContent=distance?distance.textContent.trim().replace(/^↗\s*/,''):'غير محددة';$('mddRequestTripDistance').textContent='غير متاحة';$('mddRequestTripTime').textContent='غير متاح';$('mddRequestPickup').textContent=pickup||'غير محدد';$('mddRequestDropoff').textContent=dropoff||'غير محدد';$('mddRequestOfferPrice').value='';$('mddRequestOfferNote').value='';}
 function mddCloseRequest(){mddRestoreRealHomeMap();const page=$('mddRideRequestPage');if(page){page.classList.remove('open');page.setAttribute('aria-hidden','true');}document.body.style.overflow='';mddShowTab('طلبات الركوب');}
-$('mddRequestBack').onclick=()=>{mddRestoreRealHomeMap();const page=$('mddRideRequestPage');if(page){page.classList.remove('open');page.setAttribute('aria-hidden','true');page.style.setProperty('display','none','important');}document.body.style.overflow='';mddRestorePinnedNav();mddShowTab('طلبات الركوب');};
+/* زر العودة موحّد في معالج التفويض داخل mdd-request-reopen-fix. */
 $('mddRequestAccept').onclick=()=>{mddCloseRequest();mddNotice('تم اختيار القبول مقابل السعر المعروض تجريبيًا؛ يلزم ربطه بخادم الطلبات لتأكيد الرحلة.');};
 $('mddRequestSkip').onclick=()=>{mddCloseRequest();mddNotice('تم تخطي الطلب تجريبيًا.');};
 $('mddRequestSendOffer').onclick=()=>{const price=Number($('mddRequestOfferPrice').value),note=$('mddRequestOfferNote').value.trim();if(!Number.isFinite(price)||price<=0){mddNotice('اكتب أجرتك المقترحة بالدينار الجزائري.');$('mddRequestOfferPrice').focus();return;}try{const items=JSON.parse(localStorage.getItem('mahattati_price_proposals')||'[]');items.push({price,note,pickup:$('mddRequestPickup').textContent,dropoff:$('mddRequestDropoff').textContent,createdAt:new Date().toISOString(),source:'request-screen'});localStorage.setItem('mahattati_price_proposals',JSON.stringify(items));}catch(e){}mddCloseRequest();mddNotice('تم تسجيل اقتراحك تجريبيًا. إرساله للعميل يتطلب ربط الخادم.');};
@@ -3224,18 +3224,29 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
     document.body.style.overflow='hidden'; page.scrollTop=0;
   }
   function closeRequestPage(){
-    var page=byId('mddRideRequestPage'); if(page){page.classList.remove('open');page.setAttribute('aria-hidden','true');page.style.setProperty('display','none','important');page.style.removeProperty('visibility');page.style.removeProperty('opacity');}
-    document.body.style.overflow='';
-    var dash=byId('driverDashboardPage');
-    if(dash){
-      dash.querySelectorAll('.mdd-heading,#mddOnlineHint,.mdd-rides').forEach(function(el){el.hidden=false;el.style.removeProperty('display');});
+    var page=byId('mddRideRequestPage'); if(page){page.classList.remove('open');page.setAttribute('aria-hidden','true');page.style.setProperty('display','none','important');page.style.removeProperty('visibility  function closeRequestPage(){
+    var page=byId('mddRideRequestPage');
+    if(page){
+      page.classList.remove('open');
+      page.setAttribute('aria-hidden','true');
+      page.style.setProperty('display','none','important');
+      page.style.removeProperty('visibility');
+      page.style.removeProperty('opacity');
+      page.style.removeProperty('z-index');
     }
-    if(typeof window.mddShowTab==='function'){try{window.mddShowTab('طلبات الركوب')}catch(e){}}
-  }
-  document.addEventListener('click',function(e){
-    var back=e.target.closest('#mddRequestBack');
-    if(back){e.preventDefault();e.stopImmediatePropagation();closeRequestPage();return;}
-    /* Navigation buttons only switch tabs. They must never open request details. */
+    document.body.style.overflow='';
+    if(typeof window.mddRestoreRealHomeMap==='function'){
+      try{window.mddRestoreRealHomeMap()}catch(e){console.error('Restore home map:',e)}
+    }
+    if(typeof window.mddShowTab==='function'){
+      try{window.mddShowTab('طلبات الركوب')}
+      catch(e){console.error('Restore driver requests tab:',e)}
+    }else{
+      var dash=byId('driverDashboardPage');
+      if(dash)dash.querySelectorAll('.mdd-heading,#mddOnlineHint,.mdd-rides').forEach(function(el){el.hidden=false;el.style.removeProperty('display')});
+      if(typeof window.mddRestorePinnedNav==='function'){try{window.mddRestorePinnedNav()}catch(e){}}
+    }
+  }t never open request details. */
     var view=e.target.closest('#driverDashboardPage .mdd-view');
     if(view){var card=view.closest('.mdd-ride');if(card){e.preventDefault();e.stopImmediatePropagation();openRequestPage(card);}}
   },true);
@@ -3747,32 +3758,7 @@ input,textarea,select{min-width:0;max-width:100%}
 </style>
 
 <!-- Duplicate ride-request visibility rules removed; canonical rules are below. -->
-<script id="mdd-ride-request-navigation-fix">
-(function(){
-  function openRideRequest(){
-    const page=document.getElementById('mddRideRequestPage');
-    if(!page)return;
-    page.classList.add('open');
-    page.setAttribute('aria-hidden','false');
-    page.style.setProperty('display','block','important');
-    page.style.setProperty('z-index','9000','important');
-    document.querySelectorAll('#driverDashboardPage .mdd-nav button').forEach(function(b){
-      const active=b.dataset.tab==='الطلب'; b.classList.toggle('active',active); b.setAttribute('aria-current',active?'page':'false');
-    });
-    const wallet=document.getElementById('mddWalletPage');
-    if(wallet){wallet.hidden=true;wallet.classList.remove('mdd-wallet-open');wallet.style.setProperty('display','none','important');wallet.setAttribute('aria-hidden','true');}
-    const dashboard=document.getElementById('driverDashboardPage');
-    if(dashboard){['.mdd-heading','#mddOnlineHint','.mdd-rides'].forEach(function(sel){const el=dashboard.querySelector(sel);if(el)el.hidden=true;});}
-    try{if(typeof mddPopulateRequest==='function')mddPopulateRequest();}catch(e){console.error('Request details populate:',e);}
-  }
-  /* Do not intercept the bottom navigation here: request details open only
-     from the explicit .mdd-view button on an individual ride card. */
-  document.addEventListener('DOMContentLoaded',function(){
-    const back=document.getElementById('mddRequestBack');
-    if(back)back.addEventListener('click',function(){const page=document.getElementById('mddRideRequestPage');if(page){page.classList.remove('open');page.setAttribute('aria-hidden','true');page.style.setProperty('display','none','important');}const nav=document.querySelector('#driverDashboardPage .mdd-nav button[data-tab="طلبات الركوب"]');if(nav)nav.click();});
-  });
-})();
-</script>
+<!-- Duplicate request-back listener removed; unified handler lives in mdd-request-reopen-fix. -->
 
 
 
