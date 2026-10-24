@@ -1291,7 +1291,7 @@ body.mdd-request-nav-pinned #driverDashboardPage .mdd-nav, body.mdd-request-nav-
 <button class="menu-item" data-menu-action="help" type="button"><span id="menuHelp">المساعدة</span><span class="mi-icon">ⓘ</span></button>
 <button class="menu-item" data-menu-action="support" type="button"><span id="menuSupport">الدعم</span><span class="mi-icon">▤</span></button>
 </nav>
-<div class="menu-footer"><button class="menu-partner" id="menuPartner" type="button">وضع الشريك السائق</button><button class="menu-partner merchant-menu-button" id="menuMerchant" type="button">حساب شريك تاجر</button><button class="menu-partner merchant-admin-button" id="menuMerchantAdmin" type="button" hidden>إدارة طلبات التجار</button><div aria-label="وسائل التواصل" class="menu-socials">
+<div class="menu-footer"><button class="menu-partner" id="menuPartner" type="button">وضع الشريك السائق</button><button class="menu-partner merchant-menu-button" id="menuMerchant" type="button">حساب شريك تاجر</button><button class="menu-partner merchant-admin-button" id="menuMerchantAdmin" type="button" hidden>إدارة طلبات التجار</button><button class="menu-partner merchant-admin-button" id="menuDriverAdmin" type="button" hidden>إدارة طلبات السائقين</button><div aria-label="وسائل التواصل" class="menu-socials">
 <span class="social-icon social-instagram" role="img" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="17.6" cy="6.6" r="1.3" fill="currentColor"/></svg></span>
 <span class="social-icon social-facebook" role="img" aria-label="Facebook" title="Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.5 21v-8h2.7l.4-3.1h-3.1v-2c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.3V13h2.8v8h3.4Z"/></svg></span>
 <span class="social-icon social-tiktok" role="img" aria-label="TikTok" title="TikTok"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.6 7.2a6.3 6.3 0 0 1-4-1.5v8.1a5.7 5.7 0 1 1-5-5.7v3.2a2.6 2.6 0 1 0 1.8 2.5V2.5h3.2c.2 2 1.5 3.6 4 4v3.2Z"/></svg></span>
@@ -3545,6 +3545,18 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   <div class="merchant-body"><div class="merchant-message" id="merchantAdminMessage" role="status" aria-live="polite"></div><div id="merchantAdminList"></div><button class="merchant-secondary" id="merchantAdminRefresh" type="button">تحديث القائمة</button></div>
  </div>
 </div>
+<div id="driverAdminPortal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="driverAdminTitle" class="merchant-admin-portal">
+ <div class="merchant-shell">
+  <header class="merchant-head"><button class="merchant-back" id="driverAdminBack" type="button" aria-label="رجوع">‹</button><div><h1 id="driverAdminTitle">مراجعة طلبات السائقين</h1><p>لوحة الإدارة — للمخولين فقط</p></div></header>
+  <div class="merchant-body">
+   <div class="merchant-message" id="driverAdminMessage" role="status" aria-live="polite"></div>
+   <section aria-labelledby="driverAdminPendingTitle"><h2 id="driverAdminPendingTitle">طلبات تنتظر القرار</h2><div id="driverAdminPendingList"></div></section>
+   <section aria-labelledby="driverAdminApprovedTitle"><h2 id="driverAdminApprovedTitle">السائقون المقبولون</h2><div id="driverAdminApprovedList"></div></section>
+   <section aria-labelledby="driverAdminOtherTitle"><h2 id="driverAdminOtherTitle">طلبات أخرى</h2><div id="driverAdminOtherList"></div></section>
+   <button class="merchant-secondary" id="driverAdminRefresh" type="button">تحديث القائمة</button>
+  </div>
+ </div>
+</div>
 <script id="mahattati-merchant-account-script">
 (function(){
  'use strict';
@@ -3642,6 +3654,112 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  setTimeout(refreshStaffShortcut,900);
  document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('merchantPortal').classList.contains('open'))closePage('merchantPortal');if($('merchantAdminPortal').classList.contains('open'))closePage('merchantAdminPortal');}});
 })();
+
+<script id="mahattati-driver-admin-script">
+(function(){
+ 'use strict';
+ const $=id=>document.getElementById(id);
+ const statusText={pending:'قيد المراجعة',under_review:'قيد التدقيق',approved:'مقبول',rejected:'مرفوض'};
+ const roleAllowed=['admin','reviewer','staff'];
+ const client=()=>window.mahattatiSupabase;
+ function message(text,ok=false){const el=$('driverAdminMessage');if(!el)return;el.textContent=text;el.classList.add('show');el.style.background=ok?'#e9fbef':'#fff4e5';el.style.color=ok?'#176534':'#8a4b08';}
+ function hideMessage(){const el=$('driverAdminMessage');if(el){el.textContent='';el.classList.remove('show');}}
+ function openPortal(){if(typeof closeMenu==='function')closeMenu();$('driverAdminPortal').classList.add('open');$('driverAdminPortal').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';}
+ function closePortal(){const p=$('driverAdminPortal');p.classList.remove('open');p.setAttribute('aria-hidden','true');document.body.style.overflow='';}
+ async function assertStaff(){
+  const c=client();if(!c)throw new Error('خدمة قاعدة البيانات غير متاحة.');
+  const {data:{user},error}=await c.auth.getUser();if(error)throw error;
+  if(!user)throw new Error('سجّل الدخول بحساب الإدارة أولًا.');
+  const {data,error:staffError}=await c.from('staff_members').select('staff_role').ilike('email',user.email||'').maybeSingle();
+  if(staffError)throw staffError;
+  if(!data||!roleAllowed.includes(data.staff_role))throw new Error('هذا القسم مخصص لحسابات الإدارة المخولة فقط.');
+  return {user,role:data.staff_role};
+ }
+ function node(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el;}
+ function renderCard(app,container){
+  const card=node('article','merchant-app-card');
+  card.appendChild(node('h3','',app.full_name||app.email||'طلب سائق'));
+  const meta=node('div','merchant-app-meta',[
+   'الحالة: '+(statusText[app.status]||app.status||'غير محددة'),
+   'الاسم: '+([app.full_name,app.surname].filter(Boolean).join(' ')||'—'),
+   'الهاتف: '+(app.phone||'—'),
+   'البريد: '+(app.email||'—'),
+   'المركبة: '+([app.vehicle_make,app.vehicle_model].filter(Boolean).join(' ')||'—'),
+   'اللون: '+(app.vehicle_color||'—'),
+   'سنة الصنع: '+(app.vehicle_year||'—'),
+   'رقم اللوحة: '+(app.vehicle_plate||'—'),
+   'تاريخ الإرسال: '+(app.submitted_at?new Date(app.submitted_at).toLocaleString('ar-DZ'):'—'),
+   'تاريخ المراجعة: '+(app.reviewed_at?new Date(app.reviewed_at).toLocaleString('ar-DZ'):'—'),
+   app.reviewer_note?'ملاحظة سابقة: '+app.reviewer_note:''
+  ].filter(Boolean).join('\n'));
+  card.appendChild(meta);
+  const note=node('textarea','merchant-review-note');note.maxLength=700;note.placeholder='ملاحظة الإدارة (اختياري)';note.value=app.reviewer_note||'';note.setAttribute('aria-label','ملاحظة الإدارة');card.appendChild(note);
+  const actions=node('div','merchant-admin-actions');
+  async function updateStatus(status,button){
+   button.disabled=true;
+   try{
+    await assertStaff();
+    const {data,error}=await client().rpc('review_driver_application',{p_application_id:app.id,p_status:status,p_note:note.value.trim()||null});
+    if(error)throw error;
+    if(!data||data.status!==status)throw new Error('لم يؤكد الخادم تغيير حالة طلب السائق.');
+    if(status==='approved'&&data.account_activated!==true)throw new Error('تم تحديث الحالة لكن الخادم لم يؤكد تفعيل حساب السائق.');
+    await loadApplications();
+    message(status==='approved'?'تم قبول السائق ونقله إلى قائمة المقبولين وتفعيل صلاحية حساب السائق.':status==='rejected'?'تم رفض طلب السائق.':'تم تحديث حالة الطلب إلى: '+(statusText[status]||status),true);
+   }catch(e){message(e.message||'تعذر تحديث طلب السائق.');button.disabled=false;}
+  }
+  if(app.status!=='approved'){
+   const approve=node('button','merchant-approve','قبول السائق وتفعيل الحساب');
+   const review=node('button','merchant-secondary','قيد التدقيق');
+   const reject=node('button','merchant-reject','رفض الطلب');
+   approve.type=review.type=reject.type='button';
+   approve.addEventListener('click',()=>updateStatus('approved',approve));
+   review.addEventListener('click',()=>updateStatus('under_review',review));
+   reject.addEventListener('click',()=>updateStatus('rejected',reject));
+   actions.append(approve,review,reject);card.appendChild(actions);
+  }else{
+   card.appendChild(node('p','merchant-status','هذا السائق مقبول، ويجب أن يتمكن من دخول حساب السائق.'));
+   const revoke=node('button','merchant-reject','إلغاء الاعتماد');
+   revoke.type='button';revoke.addEventListener('click',()=>updateStatus('rejected',revoke));actions.appendChild(revoke);card.appendChild(actions);
+  }
+  container.appendChild(card);
+ }
+ async function loadApplications(){
+  hideMessage();
+  const pending=$('driverAdminPendingList'),approved=$('driverAdminApprovedList'),other=$('driverAdminOtherList');
+  [pending,approved,other].forEach(el=>el.replaceChildren(node('p','merchant-app-meta','جارٍ تحميل الطلبات…')));
+  try{
+   await assertStaff();
+   const {data,error}=await client().from('driver_applications')
+    .select('id,user_id,full_name,surname,phone,email,vehicle_make,vehicle_model,vehicle_color,vehicle_year,vehicle_plate,status,reviewer_note,submitted_at,reviewed_at')
+    .order('submitted_at',{ascending:false});
+   if(error)throw error;
+   [pending,approved,other].forEach(el=>el.replaceChildren());
+   const rows=data||[];
+   const groups=[
+    {el:pending,items:rows.filter(x=>['pending','under_review'].includes(x.status)),empty:'لا توجد طلبات تنتظر القرار.'},
+    {el:approved,items:rows.filter(x=>x.status==='approved'),empty:'لا يوجد سائقون مقبولون بعد.'},
+    {el:other,items:rows.filter(x=>!['pending','under_review','approved'].includes(x.status)),empty:'لا توجد طلبات مرفوضة أو حالات أخرى.'}
+   ];
+   groups.forEach(g=>{if(!g.items.length)g.el.appendChild(node('p','merchant-app-meta',g.empty));else g.items.forEach(app=>renderCard(app,g.el));});
+   message('تم تحميل '+rows.length+' طلب سائق.',true);
+  }catch(e){
+   [pending,approved,other].forEach(el=>el.replaceChildren());
+   message(e.message||'تعذر تحميل طلبات السائقين. تحقق من صلاحيات قاعدة البيانات.');
+  }
+ }
+ $('menuDriverAdmin').addEventListener('click',async()=>{openPortal();await loadApplications();});
+ $('driverAdminBack').addEventListener('click',closePortal);
+ $('driverAdminRefresh').addEventListener('click',loadApplications);
+ async function refreshShortcut(){
+  const button=$('menuDriverAdmin');button.hidden=true;
+  try{await assertStaff();button.hidden=false;}catch(_){button.hidden=true;}
+ }
+ const c=client();if(c&&c.auth&&c.auth.onAuthStateChange)c.auth.onAuthStateChange(()=>setTimeout(refreshShortcut,0));
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshShortcut();});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('driverAdminPortal').classList.contains('open'))closePortal();});
+ setTimeout(refreshShortcut,1100);
+})();
+</script>
 </script>
 </body>
 </html>
