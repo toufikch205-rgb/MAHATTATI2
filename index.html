@@ -538,14 +538,23 @@ body.trip-page-active #tripMapPage { z-index: 1600; }
 @media(max-width:360px){#suggestFarePage .sf-trip-settings{padding:11px 12px}#suggestFarePage .sf-time-options{gap:5px}#suggestFarePage .sf-time-option{font-size:11px;padding:6px 3px}}
 </style>
 <style id="request-sent-confirmation-style">
-.request-sent-backdrop{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(12,18,12,.38);backdrop-filter:blur(3px)}
+.request-sent-backdrop{position:fixed;inset:0;z-index:3000;display:none;align-items:flex-end;justify-content:center;padding:0;background:rgba(22,24,18,.10);backdrop-filter:blur(1px)}
 .request-sent-backdrop.open{display:flex}
-.request-sent-card{width:min(100%,360px);padding:28px 22px 22px;border-radius:26px;background:#fff;text-align:center;box-shadow:0 20px 70px rgba(0,0,0,.2);border:1px solid #e8eee8}
-.request-sent-icon{width:62px;height:62px;display:grid;place-items:center;margin:0 auto 15px;border-radius:50%;background:#eafff1;border:2px solid #00FF66;color:#00FF66;font-size:32px;font-weight:900}
-.request-sent-card h2{margin:0 0 9px;font-size:23px;font-weight:850;color:#151915}
-.request-sent-card p{margin:0 0 22px;font-size:17px;line-height:1.7;color:#626b61}
-#requestSentOkay{width:100%;min-height:52px;border:0;border-radius:16px;background:#00FF66;color:#101710;font:800 18px system-ui;cursor:pointer}
+.request-sent-card{width:100%;max-width:560px;min-height:390px;padding:12px 22px calc(22px + env(safe-area-inset-bottom));border-radius:34px 34px 0 0;background:#fff;text-align:center;box-shadow:0 -8px 35px rgba(0,0,0,.08);border:0}
+.search-progress-grabber{width:62px;height:7px;border-radius:10px;background:#b9b9b0;margin:0 auto 32px}
+.search-progress-heading{display:flex;justify-content:space-between;align-items:center;text-align:right;gap:12px}
+.search-progress-heading h2{font-size:clamp(25px,6vw,34px);margin:0 0 5px;font-weight:900;color:#151515}
+.search-progress-heading p{font-size:clamp(17px,4.4vw,23px);margin:0 0 22px;color:#222;line-height:1.45}
+#searchElapsed{font-size:clamp(24px,6vw,34px);direction:ltr;color:#111;align-self:flex-start}
+.search-progress-track{height:15px;border-radius:20px;background:#f1f0e7;overflow:hidden;margin:0 0 32px}
+.search-progress-track i{display:block;height:100%;width:42%;border-radius:20px;background:#161616;animation:mahattatiSearchProgress 2.8s ease-in-out infinite alternate}
+@keyframes mahattatiSearchProgress{from{width:28%}to{width:82%}}
+.search-fare-control{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;margin:0 0 16px;border-radius:28px;background:#f2f1e7}
+.search-fare-control button{width:62px;height:62px;flex:0 0 62px;border:0;border-radius:50%;background:#fff;font-size:32px;color:#111;box-shadow:0 3px 10px #0000000d}
+.search-fare-control strong{font-size:clamp(27px,7vw,38px);font-weight:500;white-space:nowrap;color:#161616}
+#requestSentOkay{width:100%;min-height:66px;border:0;border-radius:25px;background:#f5f4eb;color:#171717;font:800 28px system-ui;cursor:pointer}
 #requestSentOkay:active{transform:scale(.985)}
+@media(min-width:600px){.request-sent-backdrop{align-items:center;padding:20px}.request-sent-card{border-radius:30px}}
 </style>
 <style id="mahattati-visual-consistency-polish">
 /* Visual consistency pass: icon alignment, touch targets, spacing, and responsive safety. */
@@ -2369,12 +2378,13 @@ input,textarea,select{min-width:0;max-width:100%}
 <nav aria-label="التنقل الرئيسي" class="main-bottom-nav" dir="rtl" id="mainBottomNav"><button aria-label="ما وجهتك وكم التكلفة؟" class="bottom-nav-item active" id="bottomNavDestination" type="button"><span aria-hidden="true" class="bottom-nav-icon">⌖</span><span>الرئيسية</span></button><button aria-label="السجل" class="bottom-nav-item" id="bottomNavHistory" type="button"><span aria-hidden="true" class="bottom-nav-icon">◷</span><span>السجل</span></button><button aria-label="الحساب" class="bottom-nav-item" id="bottomNavAccount" type="button"><span aria-hidden="true" class="bottom-nav-icon">♙</span><span>الحساب</span></button></nav>
 <div class="toast" id="toast"></div>
 <div aria-hidden="true" aria-labelledby="requestSentTitle" aria-modal="true" class="request-sent-backdrop" id="requestSentModal" role="dialog">
-<div class="request-sent-card" dir="rtl">
-<div aria-hidden="true" class="request-sent-icon">✓</div>
-<h2 id="requestSentTitle">تم إرسال طلبك</h2>
-<p id="requestSearchStatus" aria-live="polite">جارٍ البحث عن السائقين المتاحين وإرسال طلبك إليهم…</p>
-<div id="availableDriversResults" style="margin:12px 0;max-height:32vh;overflow:auto;text-align:right"></div>
-<button id="requestSentOkay" type="button">حسنًا</button>
+<div class="request-sent-card search-progress-card" dir="rtl">
+<div class="search-progress-grabber"></div>
+<div class="search-progress-heading"><div><h2 id="requestSentTitle">مواصلة البحث</h2><p id="requestSearchStatus" aria-live="polite">جارٍ توسيع منطقة البحث عن السائقين</p></div><span id="searchElapsed">0:42</span></div>
+<div class="search-progress-track"><i></i></div>
+<div class="search-fare-control"><button id="searchFarePlus" aria-label="زيادة الأجرة" type="button">＋</button><strong><span id="searchFareValue">500</span> دج.</strong><button id="searchFareMinus" aria-label="تقليل الأجرة" type="button">−</button></div>
+<button id="requestSentOkay" type="button">إلغاء الطلب</button>
+<div id="availableDriversResults" style="margin:12px 0;max-height:20vh;overflow:auto;text-align:right"></div>
 </div>
 </div>
 <div aria-hidden="true" class="menu-backdrop" id="menuBackdrop">
@@ -3121,8 +3131,9 @@ async function submitTripRequest(){
   requests.unshift(request);localStorage.setItem('mahattati_requests',JSON.stringify(requests.slice(0,200)));
   proposedFare=request.price;
   modal.classList.add('open');modal.setAttribute('aria-hidden','false');
+  $('searchFareValue').textContent=String(request.price);
   const searchStatus=$('requestSearchStatus'),driversHost=$('availableDriversResults');
-  if(searchStatus)searchStatus.textContent='تم إرسال طلبك للسائقين المتصلين. جارٍ جلب السائقين المتاحين…';
+  if(searchStatus)searchStatus.textContent='جارٍ توسيع منطقة البحث عن السائقين';
   if(driversHost)driversHost.innerHTML='<p style="padding:10px;color:#657065">جارٍ البحث…</p>';
   try{
     const {data:drivers,error:driversError}=await client.rpc('list_available_drivers',{p_service_type:request.serviceType||'economy'});
@@ -3153,6 +3164,14 @@ async function submitTripRequest(){
  }
 }
 $('tripSearchOffers').onclick=submitTripRequest;
+$('searchFarePlus').addEventListener('click',async()=>{
+ const value=Math.max(0,Number($('searchFareValue').textContent)||proposedFare)+50;
+ $('searchFareValue').textContent=String(value);setProposedFare(value);
+});
+$('searchFareMinus').addEventListener('click',()=>{
+ const value=Math.max(50,(Number($('searchFareValue').textContent)||proposedFare)-50);
+ $('searchFareValue').textContent=String(value);setProposedFare(value);
+});
 $('requestSentOkay').addEventListener('click',()=>{$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');showRequestHistory();});
 $('requestSentModal').addEventListener('click',e=>{if(e.target===$('requestSentModal')){$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');}});
 let proposedFare=500;
