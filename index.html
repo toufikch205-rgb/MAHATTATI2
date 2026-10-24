@@ -2743,9 +2743,10 @@ function updateRouteSummary(distanceMeters, durationSeconds, state="ready"){
   sub.textContent=lang==='ar'?'المسافة والمدة حسب الطرق':'Distance et durée par la route';
 }
 async function drawSelectedRoute(){
-  // Route endpoints come only from the currently selected A and B markers.
-  const start = pickupMarker?.getLatLng() || null;
-  const end = destMarker?.getLatLng() || null;
+  // A always comes from the chosen pickup marker; B from the chosen destination marker.
+  // Never substitute the phone GPS position for an explicitly selected pickup.
+  const start = pickupMarker ? pickupMarker.getLatLng() : null;
+  const end = destMarker ? destMarker.getLatLng() : null;
   const requestId = ++routeRequestId;
   if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
   if (routeOutline) { map.removeLayer(routeOutline); routeOutline = null; }
@@ -2976,7 +2977,13 @@ map.on('click',async e=>{
     destMarker=L.marker(ll,{icon,zIndexOffset:1100,title:say('dest')}).addTo(map);
     const address=await reverseGeocode(ll); if(selectionRequestId!==mapSelectionRequestId)return; setDestinationLabel(address); toast(say('destSet')); drawSelectedRoute();
   }
-  selecting=isPickup?'dest':'pickup';$('mapNote').textContent=say(selecting==='pickup'?'pickPrompt':'destPrompt');$('mapNote').classList.add('visible');
+  // Stop map-pick mode after one intentional selection. The next tap must not
+  // silently replace the other endpoint; the user chooses A or B explicitly.
+  selecting=null;
+  $('mapNote').textContent=lang==='ar'
+    ? (isPickup?'تم تحديث نقطة الانطلاق A. لتغيير الوجهة B استخدم حقل الوجهة أو فعّل اختيار الوجهة على الخريطة.':'تم تحديث نقطة الوصول B. لتغيير الانطلاق A استخدم حقل الانطلاق أو فعّل اختيار الانطلاق على الخريطة.')
+    : (isPickup?'Départ A mis à jour. Pour changer l’arrivée B, utilisez son champ ou activez sa sélection sur la carte.':'Arrivée B mise à jour. Pour changer le départ A, utilisez son champ ou activez sa sélection sur la carte.');
+  $('mapNote').classList.add('visible');
 });
 $('locateBtn').onclick=locate;$('zoomIn').onclick=()=>map.zoomIn();$('pickOnMap').onclick=()=>setSelectMode('pickup');$('destOnMap').onclick=()=>setSelectMode('dest');$('destinationFocus').onclick=()=>{openRouteModal();};
 function openRouteModal(){const m=$('routeModal');$('modalPickupInput').value=$('pickupInput').value||$('mapAddress').textContent||'';$('modalDestInput').value=$('destInput').value||'';m.classList.add('open');m.setAttribute('aria-hidden','false');setTimeout(()=>$('modalPickupField').focus({preventScroll:true}),120);}
