@@ -542,7 +542,7 @@ body.trip-page-active #tripMapPage { z-index: 1600; }
 .request-sent-backdrop.open{display:flex}
 .request-sent-card{width:100%;max-width:560px;min-height:390px;padding:12px 22px calc(22px + env(safe-area-inset-bottom));border-radius:34px 34px 0 0;background:#fff;text-align:center;box-shadow:0 -8px 35px rgba(0,0,0,.08);border:0}
 .search-progress-grabber{width:62px;height:7px;border-radius:10px;background:#b9b9b0;margin:0 auto 32px}
-.search-progress-heading{display:flex;justify-content:space-between;align-items:center;text-align:right;gap:12px}
+ .search-driver-banner{display:flex;align-items:center;gap:10px;background:#f2f1e7;border-radius:20px;padding:13px 16px;margin:-4px -4px 18px;font-size:clamp(16px,4.2vw,22px)}.search-driver-avatar{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#fff;font-size:22px}.search-driver-count{font-weight:800}.search-auto-accept{display:flex;align-items:center;gap:10px;border-radius:28px;background:#fff;padding:15px 17px;margin:10px 0;font-size:clamp(16px,4.2vw,22px);line-height:1.4}.search-auto-accept>span:nth-child(2){flex:1}.search-auto-icon{font-size:25px}.search-auto-accept button{width:66px;height:36px;flex:0 0 66px;border:0;border-radius:22px;background:#eee;position:relative;padding:3px}.search-auto-accept button i{display:block;width:30px;height:30px;border-radius:50%;background:white;box-shadow:0 1px 4px #0002;transition:transform .2s}.search-auto-accept button[aria-pressed="true"]{background:#00e967}.search-auto-accept button[aria-pressed="true"] i{transform:translateX(30px)}.search-cash-row{display:flex;align-items:center;gap:12px;background:#fff;border-radius:24px;padding:17px 20px;margin:10px 0;font-size:clamp(18px,4.5vw,24px)}.search-cash-row strong{font-weight:500}.search-cash-row span:last-child{margin-right:auto;color:#777}.search-route-card{background:#fff;border-radius:24px;padding:17px 20px;margin:10px 0;font-size:clamp(17px,4.5vw,24px);line-height:1.8;overflow-wrap:anywhere}.search-route-card div{display:flex;gap:10px;align-items:flex-start}.search-progress-card{max-height:88dvh;overflow-y:auto}.search-progress-heading{display:flex;justify-content:space-between;align-items:center;text-align:right;gap:12px}
 .search-progress-heading h2{font-size:clamp(25px,6vw,34px);margin:0 0 5px;font-weight:900;color:#151515}
 .search-progress-heading p{font-size:clamp(17px,4.4vw,23px);margin:0 0 22px;color:#222;line-height:1.45}
 #searchElapsed{font-size:clamp(24px,6vw,34px);direction:ltr;color:#111;align-self:flex-start}
@@ -2379,11 +2379,15 @@ input,textarea,select{min-width:0;max-width:100%}
 <div class="toast" id="toast"></div>
 <div aria-hidden="true" aria-labelledby="requestSentTitle" aria-modal="true" class="request-sent-backdrop" id="requestSentModal" role="dialog">
 <div class="request-sent-card search-progress-card" dir="rtl">
+<div class="search-driver-banner"><span class="search-driver-avatar">👤</span><strong>يعرض شريك سائق واحد طلبك</strong><span class="search-driver-count">(1)</span></div>
 <div class="search-progress-grabber"></div>
 <div class="search-progress-heading"><div><h2 id="requestSentTitle">مواصلة البحث</h2><p id="requestSearchStatus" aria-live="polite">جارٍ توسيع منطقة البحث عن السائقين</p></div><span id="searchElapsed">0:42</span></div>
 <div class="search-progress-track"><i></i></div>
 <div class="search-fare-control"><button id="searchFarePlus" aria-label="زيادة الأجرة" type="button">＋</button><strong><span id="searchFareValue">500</span> دج.</strong><button id="searchFareMinus" aria-label="تقليل الأجرة" type="button">−</button></div>
 <button id="requestSentOkay" type="button">إلغاء الطلب</button>
+<div class="search-auto-accept"><span class="search-auto-icon">➤</span><span>قبول أقرب شريك سائق مقابل <strong><span id="searchAutoFare">500</span> دج.</strong> تلقائيًا</span><button id="searchAutoToggle" type="button" aria-pressed="false" aria-label="تفعيل القبول التلقائي"><i></i></button></div>
+<div class="search-cash-row"><span>💵</span><strong><span id="searchCashFare">500</span> دج.</strong><span>نقدًا</span></div>
+<div class="search-route-card"><div>♟ <span id="searchPickupLabel">موقع الانطلاق</span></div><div>⚑ <span id="searchDestinationLabel">الوجهة</span></div></div>
 <div id="availableDriversResults" style="margin:12px 0;max-height:20vh;overflow:auto;text-align:right"></div>
 </div>
 </div>
@@ -3131,7 +3135,8 @@ async function submitTripRequest(){
   requests.unshift(request);localStorage.setItem('mahattati_requests',JSON.stringify(requests.slice(0,200)));
   proposedFare=request.price;
   modal.classList.add('open');modal.setAttribute('aria-hidden','false');
-  $('searchFareValue').textContent=String(request.price);
+  $('searchFareValue').textContent=String(request.price);$('searchAutoFare').textContent=String(request.price);$('searchCashFare').textContent=String(request.price);
+  $('searchPickupLabel').textContent=request.pickup;$('searchDestinationLabel').textContent=request.destination;
   const searchStatus=$('requestSearchStatus'),driversHost=$('availableDriversResults');
   if(searchStatus)searchStatus.textContent='جارٍ توسيع منطقة البحث عن السائقين';
   if(driversHost)driversHost.innerHTML='<p style="padding:10px;color:#657065">جارٍ البحث…</p>';
@@ -3166,12 +3171,13 @@ async function submitTripRequest(){
 $('tripSearchOffers').onclick=submitTripRequest;
 $('searchFarePlus').addEventListener('click',async()=>{
  const value=Math.max(0,Number($('searchFareValue').textContent)||proposedFare)+50;
- $('searchFareValue').textContent=String(value);setProposedFare(value);
+ $('searchFareValue').textContent=String(value);$('searchAutoFare').textContent=String(value);$('searchCashFare').textContent=String(value);setProposedFare(value);
 });
 $('searchFareMinus').addEventListener('click',()=>{
  const value=Math.max(50,(Number($('searchFareValue').textContent)||proposedFare)-50);
- $('searchFareValue').textContent=String(value);setProposedFare(value);
+ $('searchFareValue').textContent=String(value);$('searchAutoFare').textContent=String(value);$('searchCashFare').textContent=String(value);setProposedFare(value);
 });
+$('searchAutoToggle').addEventListener('click',()=>{const b=$('searchAutoToggle'),on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(on));b.setAttribute('aria-label',on?'إيقاف القبول التلقائي':'تفعيل القبول التلقائي');});
 $('requestSentOkay').addEventListener('click',()=>{$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');showRequestHistory();});
 $('requestSentModal').addEventListener('click',e=>{if(e.target===$('requestSentModal')){$('requestSentModal').classList.remove('open');$('requestSentModal').setAttribute('aria-hidden','true');}});
 let proposedFare=500;
