@@ -2764,12 +2764,24 @@ async function drawSelectedRoute(){
         lineCap: 'round', lineJoin: 'round', interactive: false
       }).addTo(map);
       routeLine = L.polyline(points, {
-        color: '#1677ff', weight: 6, opacity: 1,
+        color: '#00D968', weight: 6, opacity: 1,
         lineCap: 'round', lineJoin: 'round', interactive: false
       }).addTo(map);
+
+      // Keep the road route below the A/B markers so both endpoints stay visible.
       routeOutline.bringToFront();
       routeLine.bringToFront();
-      map.fitBounds(routeLine.getBounds().pad(.22), { maxZoom: mode === 'intercity' ? 10 : 16, animate: true });
+      if (pickupMarker) pickupMarker.setZIndexOffset(1200);
+      if (destMarker) destMarker.setZIndexOffset(1300);
+
+      // Frame both endpoints and the complete road geometry in the map viewport.
+      const routeBounds = routeLine.getBounds();
+      if (pickupMarker) routeBounds.extend(pickupMarker.getLatLng());
+      if (destMarker) routeBounds.extend(destMarker.getLatLng());
+      map.fitBounds(routeBounds.pad(.22), {
+        maxZoom: mode === 'intercity' ? 10 : 16,
+        animate: true
+      });
 
       const km = (route.distance / 1000).toLocaleString(lang === 'ar' ? 'ar-DZ' : 'fr-FR', { maximumFractionDigits: 1 });
       const mins = Math.max(1, Math.round((route.duration || 0) / 60));
