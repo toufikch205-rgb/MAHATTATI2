@@ -3139,11 +3139,14 @@ async function checkPassengerRequestStatus(){
    stopPassengerAcceptancePolling();
    stopRideSearchTimer();
    const modal=$('requestSentModal');
-   if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');}
+   if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');modal.style.display='none';}
+   // Stop the search sheet completely; accepted trips switch to the map-following state.
+   stopRideSearchTimer();
    const panel=ensurePassengerTrackingPanel();
    panel.style.display='block';
+   panel.style.zIndex='5000';
    const text=panel.querySelector('#mahattatiDriverTrackingText');
-   if(text)text.textContent='تم قبول طلبك! السائق قادم إليك. تُحدّث الخريطة موقعه تلقائيًا.';
+   if(text)text.textContent='تم قبول طلبك! السائق قادم إليك. جارٍ تحديث موقعه على الخريطة…';
    const {data:{user}}=await client.auth.getUser();
    if(user)await refreshPassengerTracking(user);
    toast('قبل السائق طلبك، وهو قادم إليك الآن.');
@@ -3897,8 +3900,8 @@ applyLang();setTimeout(()=>map.invalidateSize(),300);map.whenReady(()=>setTimeou
    let panel=document.getElementById('mahattatiDriverTracking');
    if(panel)return panel;
    panel=document.createElement('div');panel.id='mahattatiDriverTracking';panel.dir='rtl';
-   panel.style.cssText='display:none;position:fixed;top:92px;left:12px;z-index:1800;width:min(260px,72vw);padding:12px 14px;border:1px solid #b7f34a;border-radius:16px;background:#fff;color:#18231a;box-shadow:0 8px 26px #0002;font:13px/1.7 system-ui';
-   panel.innerHTML='<strong style="display:block;font-size:14px">متابعة السائق</strong><span id="mahattatiDriverTrackingText">بانتظار موقع السائق…</span>';
+   panel.style.cssText='display:none;position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;z-index:5000;width:auto;max-width:520px;margin:0 auto;padding:14px 16px;border:1px solid #a8efc5;border-radius:20px;background:rgba(255,255,255,.97);color:#18231a;box-shadow:0 8px 28px #0002;font:15px/1.7 system-ui;text-align:right;pointer-events:none';
+   panel.innerHTML='<strong style="display:block;font-size:17px;color:#079447;margin-bottom:3px">🚗 السائق قادم إليك</strong><span id="mahattatiDriverTrackingText">بانتظار موقع السائق…</span>';
    document.body.appendChild(panel);return panel;
  }
  function clearPassengerTracking(){
