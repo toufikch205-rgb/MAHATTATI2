@@ -3180,7 +3180,7 @@ async function submitTripRequest(){
     const {data:drivers,error:driversError}=await client.rpc('list_available_drivers',{p_service_type:request.serviceType||'economy'});
     if(driversError)throw driversError;
     const available=Array.isArray(drivers)?drivers:[];
-    if(searchStatus)searchStatus.textContent=available.length?'تم إرسال طلبك. هؤلاء السائقون متصلون ومتاحون حاليًا؛ قبول الرحلة يعتمد على استجابة السائق.':'تم إرسال طلبك، لكن لا يوجد سائق متاح ظاهر الآن. سيبقى الطلب قيد الانتظار.';
+    if(searchStatus)searchStatus.textContent=available.length?'تم إرسال طلبك والأجرة المقترحة إلى قائمة الطلبات؛ سيظهر للسائقين المعتمدين المتصلين الذين يقبلون هذا النوع من الرحلات. ننتظر قبول أحدهم.':'تم حفظ طلبك والأجرة المقترحة، لكن لا يوجد سائق متصل ومتاح لهذه الخدمة الآن. سيبقى الطلب قيد الانتظار حتى يظهر سائق مناسب.';
     if(driversHost)driversHost.innerHTML=available.length?available.map(d=>{
       let distance='';
       if(request.pickupLatitude!=null&&request.pickupLongitude!=null&&d.latitude!=null&&d.longitude!=null){
