@@ -2239,10 +2239,11 @@ $('driverAccessContinue').onclick=async()=>{
  const {data:existing,error:existingError}=await client.from('driver_applications').select('status').eq('user_id',user.id).maybeSingle();
  if(existingError){toast('تعذّر التحقق من ملف السائق: '+existingError.message);return;}
  if(existing){toast(existing.status==='approved'?'حسابك معتمد بالفعل.':'لديك ملف سائق قيد المراجعة أو تمت مراجعته.');if(existing.status==='approved')openDriverPermissionsPage();return;}
- const licenseFront=$('driverLicenseFrontInput')?.files?.[0],licenseBack=$('driverLicenseBackInput')?.files?.[0],registration=$('vehicleRegistrationDocumentInput')?.files?.[0]||$('temporaryCardPhotoInput')?.files?.[0];
+ const profilePhoto=$('driverPhotoInput')?.files?.[0],licenseFront=$('driverLicenseFrontInput')?.files?.[0],licenseBack=$('driverLicenseBackInput')?.files?.[0],registration=$('vehicleRegistrationDocumentInput')?.files?.[0]||$('temporaryCardPhotoInput')?.files?.[0];
+ if(!profilePhoto){toast('أضف صورتك الشخصية قبل إرسال الملف.');return;}
  if(!licenseFront||!licenseBack){toast('أضف وجهي رخصة القيادة قبل إرسال الملف.');return;}
  if(!registration){toast('أضف صورة البطاقة الرمادية / شهادة تسجيل المركبة.');return;}
- const files=[licenseFront,licenseBack,registration];
+ const files=[profilePhoto,licenseFront,licenseBack,registration];
  for(const file of files){if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10*1024*1024){toast('الوثائق يجب أن تكون JPG أو PNG أو WEBP وأقل من 10MB لكل صورة.');return;}}
  const btn=$('driverAccessContinue');btn.disabled=true;btn.textContent='جارٍ إرسال الملف بأمان…';
  const uploaded=[];
@@ -2250,11 +2251,11 @@ $('driverAccessContinue').onclick=async()=>{
    const bucket=client.storage.from('driver-private-documents');
    for(let i=0;i<files.length;i++){
      const file=files[i],ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
-     const path=user.id+'/application-'+Date.now()+'-'+['license-front','license-back','vehicle-registration'][i]+'.'+ext;
+     const path=user.id+'/application-'+Date.now()+'-'+['profile-photo','license-front','license-back','vehicle-registration'][i]+'.'+ext;
      const {error}=await bucket.upload(path,file,{upsert:false,contentType:file.type});if(error)throw error;uploaded.push(path);
    }
    const fullName=[$('driverFirstName')?.value.trim(),$('driverLastName')?.value.trim()].filter(Boolean).join(' ');
-   const {error}=await client.from('driver_applications').insert({user_id:user.id,full_name:fullName,surname:$('driverLastName')?.value.trim()||'',phone,email:user.email||'',vehicle_make:$('vehicleBrand')?.value.trim()||'',vehicle_model:$('vehicleModel')?.value.trim()||'',vehicle_color:$('vehicleColor')?.value.trim()||'',selfie_license_path:JSON.stringify(uploaded.slice(0,2)),vehicle_registration_path:uploaded[2],national_id_number:nationalId});
+   const {error}=await client.from('driver_applications').insert({user_id:user.id,full_name:fullName,surname:$('driverLastName')?.value.trim()||'',phone,email:user.email||'',birth_date:$('driverBirthDate')?.value||null,driver_license_number:$('driverLicenseNumber')?.value.trim()||null,driver_license_expiry:$('driverLicenseExpiry')?.value||null,vehicle_make:$('vehicleBrand')?.value.trim()||'',vehicle_model:$('vehicleModel')?.value.trim()||'',vehicle_color:$('vehicleColor')?.value.trim()||'',vehicle_year:Number($('vehicleYear')?.value)||null,vehicle_plate:$('vehiclePlate')?.value.trim()||null,vehicle_registration_type:$('vehicleRegistrationType')?.value||null,selfie_license_path:JSON.stringify(uploaded.slice(0,3)),vehicle_registration_path:uploaded[3],national_id_number:nationalId});
    if(error)throw error;
    toast('تم إرسال ملف السائق بأمان. سيبقى قيد المراجعة حتى تتم الموافقة.');
    closeDriverAccessSetupPage();openDriverPermissionsPage();
