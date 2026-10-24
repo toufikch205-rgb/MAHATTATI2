@@ -2967,8 +2967,47 @@ $('modalDestField').addEventListener('click',e=>{e.preventDefault();openDestinat
 $('modalDestField').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDestinationSearch();}});
 $('destinationSearchBack').onclick=()=>{$('destinationModalSearch').classList.remove('open');$('modalDestField').classList.remove('dest-active');$('modalDestField').focus();};
 let destinationSearchTimer;
-async function searchDestinationPlaces(){const q=$('destinationSearchInput').value.trim();if(q.length<2){$('destinationSearchResults').innerHTML='<div class="pickup-search-status">اكتب حرفين على الأقل للبحث</div>';return;}$('destinationSearchResults').innerHTML='<div class="pickup-search-status">جارٍ البحث…</div>';try{const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&accept-language='+(lang==='ar'?'ar':'fr')+'&q='+encodeURIComponent(q);const res=await fetch(url,{headers:{'Accept':'application/json'}});if(!res.ok)throw new Error('search');const places=await res.json();const box=$('destinationSearchResults');box.innerHTML='';if(!places.length){box.innerHTML='<div class="pickup-search-status">لم يتم العثور على نتائج</div>';return;}places.forEach(place=>{const b=document.createElement('button');b.type='button';b.className='pickup-search-result';b.textContent=place.display_name;b.onclick=()=>{const ll=L.latLng(Number(place.lat),Number(place.lon));if(destMarker)map.removeLayer(destMarker);destMarker=L.marker(ll,{icon:divIcon('<div class="custom-pin red"></div>',[28,28],[14,25])}).addTo(map);setDestinationLabel(place.display_name);drawSelectedRoute();$('destinationModalSearch').classList.remove('open');$('modalDestField').classList.remove('dest-active');closeRouteModal();showTripMapPage();map.setView(ll,15,{animate:true});if(pickupMarker){const bounds=L.latLngBounds(pickupMarker.getLatLng(),ll).pad(.22);map.fitBounds(bounds,{maxZoom:15,animate:true});}else if(userLatLng){map.fitBounds(L.latLngBounds(userLatLng,ll).pad(.22),{maxZoom:15,animate:true});}toast('تم تحديد الوجهة وعرضها على الخريطة');};box.appendChild(b);});}catch(err){$('destinationSearchResults').innerHTML='<div class="pickup-search-status">تعذر البحث الآن. تحقق من الاتصال وحاول مجددًا.</div>';}}
-$('destinationSearchInput').addEventListener('input',()=>{clearTimeout(destinationSearchTimer);destinationSearchTimer=setTimeout(searchDestinationPlaces,450);});$('destinationSearchButton').onclick=searchDestinationPlaces;$('destinationSearchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchDestinationPlaces();}});
+async function searchDestinationPlaces(){
+  const q=$('destinationSearchInput').value.trim();
+  const box=$('destinationSearchResults');
+  if(q.length<2){box.innerHTML='<div class="pickup-search-status">اكتب اسم المكان أو العنوان (حرفين على الأقل)</div>';return;}
+  box.innerHTML='<div class="pickup-search-status">جارٍ البحث عن الموقع…</div>';
+  try{
+    const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&countrycodes=dz&accept-language='+(lang==='ar'?'ar':'fr')+'&q='+encodeURIComponent(q);
+    const res=await fetch(url,{headers:{'Accept':'application/json'},cache:'no-store'});
+    if(!res.ok)throw new Error('search HTTP '+res.status);
+    const places=await res.json();
+    box.innerHTML='';
+    if(!places.length){box.innerHTML='<div class="pickup-search-status">لم يتم العثور على المكان. جرّب اسم الحي أو البلدية أو الولاية.</div>';return;}
+    places.forEach(place=>{
+      const b=document.createElement('button');b.type='button';b.className='pickup-search-result';b.textContent=place.display_name;
+      b.onclick=()=>{
+        const ll=L.latLng(Number(place.lat),Number(place.lon));
+        if(!Number.isFinite(ll.lat)||!Number.isFinite(ll.lng))return;
+        if(destMarker)map.removeLayer(destMarker);
+        const icon=divIcon('<div class="custom-pin red"></div><span class="route-point-letter route-point-b">B</span>',[38,40],[19,25]);
+        destMarker=L.marker(ll,{icon,zIndexOffset:1300,title:say('dest')}).addTo(map);
+        setDestinationLabel(place.display_name);
+        $('modalDestInput').value=place.display_name;
+        $('destinationModalSearch').classList.remove('open');
+        $('modalDestField').classList.remove('dest-active');
+        closeRouteModal();
+        showTripMapPage();
+        if(pickupMarker){
+          const bounds=L.latLngBounds(pickupMarker.getLatLng(),ll).pad(.22);
+          map.fitBounds(bounds,{maxZoom:16,animate:true});
+        }else{map.setView(ll,15,{animate:true});}
+        drawSelectedRoute();
+        toast('تم تحديد نقطة الوصول B على الخريطة');
+      };
+      box.appendChild(b);
+    });
+  }catch(err){
+    console.warn('[MAHATTATI] Destination search failed:',err);
+    box.innerHTML='<div class="pickup-search-status">تعذر البحث عن المكان الآن. حاول مجددًا بعد قليل.</div>';
+  }
+}
+$('destinationSearchButton').onclick=searchDestinationPlaces;$('destinationSearchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchDestinationPlaces();}});
 function showTripMapPage(){document.body.classList.add('trip-page-active');const page=$('tripMapPage');page.classList.add('open');page.setAttribute('aria-hidden','false');$('tripPagePickup').textContent=$('modalPickupInput').value||$('pickupInput').value||'موقعي الحالي';$('tripPageDestination').textContent=$('modalDestInput').value||$('destInput').value||'الوجهة';setTimeout(()=>{map.invalidateSize();if(pickupMarker&&destMarker){drawSelectedRoute();}},180);}
 function hideTripMapPage(){const page=$('tripMapPage');page.classList.remove('open');page.setAttribute('aria-hidden','true');document.body.classList.remove('trip-page-active');setTimeout(()=>map.invalidateSize(),80);}
 $('tripPageBack').onclick=hideTripMapPage;$('tripPageEdit').onclick=()=>{hideTripMapPage();openRouteModal();};$('tripFareEdit').onclick=openSuggestFarePage;$('tripFilters').onclick=()=>openTripOptions();
@@ -3465,7 +3504,7 @@ async function searchPickupPlaces(){
         if(pickupMarker)map.removeLayer(pickupMarker);
         if(userMarker){map.removeLayer(userMarker);userMarker=null;}
         if(accuracyCircle){map.removeLayer(accuracyCircle);accuracyCircle=null;}
-        const icon=divIcon('<div class="custom-pin green"></div>',[28,28],[14,25]);
+        const icon=divIcon('<div class="custom-pin green"></div><span class="route-point-letter route-point-a">A</span>',[38,40],[19,25]);
         pickupMarker=L.marker(ll,{icon,title:say('pickup')}).addTo(map);
         map.setView(ll,16,{animate:true});
         setPickupLabel(place.display_name);
@@ -3486,11 +3525,7 @@ async function searchPickupPlaces(){
   }catch(err){$('pickupSearchResults').innerHTML='<div class="pickup-search-status">'+(lang==='ar'?'تعذر البحث الآن. تحقق من الاتصال وحاول مجددًا.':'Recherche indisponible. Vérifiez la connexion et réessayez.')+'</div>';}
 }
 $('pickupSearchInput').addEventListener('input',()=>{
-  clearTimeout(pickupSearchTimer);
-  const q=$('pickupSearchInput').value.trim();
-  if(q.length<2){$('pickupSearchResults').innerHTML='<div class="pickup-search-status">'+(lang==='ar'?'اكتب اسم المكان للبحث عن اقتراحات':'Saisissez un lieu pour voir des suggestions')+'</div>';return;}
-  $('pickupSearchResults').innerHTML='<div class="pickup-search-status">'+(lang==='ar'?'جارٍ اقتراح الأماكن…':'Chargement des suggestions…')+'</div>';
-  pickupSearchTimer=setTimeout(searchPickupPlaces,450);
+  $('pickupSearchResults').innerHTML='';
 });
 $('pickupSearchButton').onclick=searchPickupPlaces;
 $('pickupSearchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchPickupPlaces();}});
