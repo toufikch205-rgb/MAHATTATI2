@@ -2748,61 +2748,48 @@ async function drawSelectedRoute(){
   }
   updateRouteSummary(0, 0, 'pending');
 
-  const routePath = `${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=true&alternatives=false`;
+  // Try providers sequentially for older in-app browsers and avoid parallel requests to demo servers.
+  const routePath = start.lng + ',' + start.lat + ';' + end.lng + ',' + end.lat;
+  const query = '?overview=full&geometries=geojson&steps=true&alternatives=false';
   const providers = [
-    `https://router.project-osrm.org/route/v1/driving/${routePath}`,
-    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${routePath}`
+    'https://router.project-osrm.org/route/v1/driving/' + routePath + query,
+    'https://routing.openstreetmap.de/routed-car/route/v1/driving/' + routePath + query
   ];
-  const controllers = [];
   const fetchRoute = async (url) => {
     const controller = new AbortController();
-    controllers.push(controller);
-    const timer = setTimeout(() => controller.abort(), 8500);
+    const timer = setTimeout(() => controller.abort(), 12000);
     try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' },
-        cache: 'no-store'
-      });
-      if (!response.ok) throw new Error(`Routing service HTTP ${response.status}`);
+      const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' }, cache: 'no-store' });
+      if (!response.ok) throw new Error('Routing service HTTP ' + response.status);
       const data = await response.json();
-      if (data.code !== 'Ok' || !Array.isArray(data.routes) || !data.routes.length) {
-        throw new Error('No road route returned');
-      }
+      if (data.code !== 'Ok' || !Array.isArray(data.routes) || !data.routes.length) throw new Error(data.message || data.code || 'No road route returned');
       const route = data.routes[0];
-      const coords = route.geometry?.coordinates;
-      if (!Array.isArray(coords) || coords.length < 2 ||
-          !Number.isFinite(route.distance) || route.distance <= 0 ||
-          !Number.isFinite(route.duration) || route.duration <= 0) {
-        throw new Error('Route geometry or metrics are invalid');
-      }
+      const coords = route.geometry && route.geometry.coordinates;
+      if (!Array.isArray(coords) || coords.length < 2 || !Number.isFinite(route.distance) || route.distance <= 0 || !Number.isFinite(route.duration) || route.duration <= 0) throw new Error('Route geometry or metrics are invalid');
       const snapDistances = (data.waypoints || []).map(point => Number(point.distance) || 0);
       if (snapDistances.some(distance => distance > 1000)) throw new Error('Route point too far from a mapped road');
-      const points = coords.map(([lng, lat]) => [lat, lng]);
-      if (points.some(([lat, lng]) => !Number.isFinite(lat) || !Number.isFinite(lng) ||
-          Math.abs(lat) > 90 || Math.abs(lng) > 180)) throw new Error('Invalid route coordinates');
+      const points = coords.map(pair => [pair[1], pair[0]]);
+      if (points.some(pair => !Number.isFinite(pair[0]) || !Number.isFinite(pair[1]) || Math.abs(pair[0]) > 90 || Math.abs(pair[1]) > 180)) throw new Error('Invalid route coordinates');
       return { route, points, snapDistances };
-    } finally {
-      clearTimeout(timer);
-    }
+    } finally { clearTimeout(timer); }
   };
 
-  let result;
-  try {
-    // Race independent providers: the first valid road route wins.
-    result = await Promise.any(providers.map(fetchRoute));
-  } catch (error) {
+  let result = null;
+  let lastRouteError = null;
+  for (const provider of providers) {
     if (requestId !== routeRequestId) return;
-    updateRouteSummary(0, 0, 'error');
-    toast(lang === 'ar'
-      ? 'تعذر حساب المسار الآن. تحقق من الإنترنت وحاول مجددًا.'
-      : 'Itinéraire indisponible. Vérifiez Internet et réessayez.');
-    return;
-  } finally {
-    controllers.forEach(controller => controller.abort());
+    try { result = await fetchRoute(provider); break; }
+    catch (error) { lastRouteError = error; }
   }
   if (requestId !== routeRequestId) return;
-
+  if (!result) {
+    console.warn('[MAHATTATI] Road routing failed on all providers:', lastRouteError);
+    updateRouteSummary(0, 0, 'error');
+    toast(lang === 'ar'
+      ? 'خدمة رسم الطريق غير متاحة مؤقتًا. أعد المحاولة بعد لحظات.'
+      : 'Le service de calcul d’itinéraire est temporairement indisponible. Réessayez dans un instant.');
+    return;
+  }
   const { route, points, snapDistances } = result;
   routeOutline = L.polyline(points, {
     color: '#ffffff', weight: 11, opacity: .98,
