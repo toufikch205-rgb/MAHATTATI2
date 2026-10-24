@@ -2765,7 +2765,7 @@ async function drawSelectedRoute(){
   ];
   const fetchRoute = async (url) => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5500);
+    const timer = setTimeout(() => controller.abort(), 10000);
     try {
       const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' }, cache: 'no-store' });
       if (!response.ok) throw new Error('Routing service HTTP ' + response.status);
@@ -2775,14 +2775,14 @@ async function drawSelectedRoute(){
       const coords = route.geometry && route.geometry.coordinates;
       if (!Array.isArray(coords) || coords.length < 2 || !Number.isFinite(route.distance) || route.distance <= 0 || !Number.isFinite(route.duration) || route.duration <= 0) throw new Error('Route geometry or metrics are invalid');
       const snapDistances = (data.waypoints || []).map(point => Number(point.distance) || 0);
-      if (snapDistances.some(distance => distance > 1200)) throw new Error('Selected point is too far from a mapped road');
+      // Accept OSRM's nearest routable road snap even when the point is far from a mapped street.
       const points = coords.map(pair => [pair[1], pair[0]]);
       if (points.some(pair => !Number.isFinite(pair[0]) || !Number.isFinite(pair[1]) || Math.abs(pair[0]) > 90 || Math.abs(pair[1]) > 180)) throw new Error('Invalid route coordinates');
       return { route, points, snapDistances };
     } finally { clearTimeout(timer); }
   };
 
-  // Ask both public routing services at once; use the first valid road route.
+  // Try public car-routing graphs in parallel. They include main and secondary mapped roads; each service snaps endpoints to its nearest routable road.
   let result = null;
   let lastRouteError = null;
   try {
