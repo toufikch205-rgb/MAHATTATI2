@@ -2220,13 +2220,6 @@ async function openDriverDashboardPage(){
  }finally{
   if(btn)btn.disabled=false;
  }
-});
-  p.setAttribute('aria-hidden','false');
-  document.body.style.overflow='hidden';
- }catch(error){
-  console.error('Driver dashboard access verification failed:',error);
-  toast('تعذّر التحقق من حالة حسابك. لم يتم فتح واجهة السائق. حاول مجددًا.');
- }
 }
 function mddNotice(msg){const t=$('mddToast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(window.__mddTimer);window.__mddTimer=setTimeout(()=>t.classList.remove('show'),2200);}
 $('mddStatus').onclick=async()=>{const b=$('mddStatus'),client=window.mahattatiSupabase;if(!client){mddNotice('قاعدة البيانات غير متاحة.');return;}b.disabled=true;try{const {data:{user},error:ue}=await client.auth.getUser();if(ue)throw ue;if(!user){if(window.mahattatiOpenAuth)window.mahattatiOpenAuth();throw new Error('سجّل الدخول أولاً.');}const {data:driver,error:de}=await client.from('driver_applications').select('status,is_online,is_busy').eq('user_id',user.id).maybeSingle();if(de)throw de;if(!driver||driver.status!=='approved')throw new Error('حساب السائق غير معتمد بعد.');const next=!driver.is_online;const {error}=await client.rpc('set_my_driver_online',{p_is_online:next});if(error)throw error;b.setAttribute('aria-pressed',String(next));b.classList.toggle('online',next);b.querySelector('span').textContent=next?'متصل':'غير متصل';$('mddOnlineHint').innerHTML='<i class="'+(next?'online':'')+'"></i><span>'+(next?'أنت متصل الآن ويمكنك استقبال طلبات الرحلات.':'أنت غير متصل. غيّر حالتك لاستقبال الطلبات.')+'</span>';if(window.mahattatiLoadDriverRequests)window.mahattatiLoadDriverRequests();}catch(e){mddNotice(e.message||'تعذّر تغيير حالة الاتصال.');}finally{b.disabled=false;}};
