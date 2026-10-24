@@ -2743,8 +2743,9 @@ function updateRouteSummary(distanceMeters, durationSeconds, state="ready"){
   sub.textContent=lang==='ar'?'المسافة والمدة حسب الطرق':'Distance et durée par la route';
 }
 async function drawSelectedRoute(){
-  const start = pickupMarker?.getLatLng() || userLatLng;
-  const end = destMarker?.getLatLng();
+  // Route endpoints come only from the currently selected A and B markers.
+  const start = pickupMarker?.getLatLng() || null;
+  const end = destMarker?.getLatLng() || null;
   const requestId = ++routeRequestId;
   if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
   if (routeOutline) { map.removeLayer(routeOutline); routeOutline = null; }
@@ -2957,6 +2958,9 @@ function locate(){
 let mapSelectionRequestId=0;
 function setSelectMode(m){selecting=m;$('mapNote').textContent=say(m==='pickup'?'pickPrompt':'destPrompt');$('mapNote').classList.add('visible');toast(say(m==='pickup'?'pickPrompt':'destPrompt'));}
 map.on('click',async e=>{
+  // Map taps never silently overwrite entered addresses. The user must explicitly
+  // activate "choose pickup on map" or "choose destination on map" first.
+  if(selecting!=='pickup' && selecting!=='dest') return;
   // Manual selection cancels any in-flight GPS result so it cannot overwrite the user's choice.
   ++locationRequestId;
   const selectionRequestId=++mapSelectionRequestId;
