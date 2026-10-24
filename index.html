@@ -4263,3 +4263,26 @@ input,textarea,select{min-width:0;max-width:100%}
 </script>
 
 <style id="mdd-home-map-visibility-fix">#map{background:#e9eff2;isolation:isolate}#map .leaflet-tile-pane{filter:none;opacity:1}#map .leaflet-tile{filter:none;opacity:1;visibility:visible}</style>
+
+
+<script>
+/* MAHATTATI: hide merchant/admin menu shortcuts on published version */
+(function(){
+  const selectors = '#menuMerchant, #menuMerchantAdmin, #menuDriverAdmin, .merchant-menu-button, .merchant-admin-button';
+  function hideUnwantedMenuButtons(){
+    document.querySelectorAll(selectors).forEach(function(el){
+      el.hidden = true;
+      el.style.setProperty('display','none','important');
+      el.style.setProperty('visibility','hidden','important');
+      el.setAttribute('aria-hidden','true');
+    });
+  }
+  hideUnwantedMenuButtons();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hideUnwantedMenuButtons, {once:true});
+  }
+  new MutationObserver(hideUnwantedMenuButtons).observe(document.documentElement, {
+    subtree:true, childList:true, attributes:true, attributeFilter:['hidden','style','class']
+  });
+})();
+</script>
