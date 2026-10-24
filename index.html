@@ -1439,7 +1439,8 @@ body.mdd-request-nav-pinned #driverDashboardPage .mdd-nav, body.mdd-request-nav-
   </section>
   <button class="dp-driver" id="driverPartnerStart" type="button"><span class="dp-car" aria-hidden="true">🚘</span><span>إنشاء حساب شريك سائق</span></button>
  </main>
- <div class="dp-bottom"><button class="dp-existing" id="driverPartnerLogin" type="button">لديّ حساب بالفعل</button><button class="dp-passenger" id="driverPartnerPassenger" type="button">الانتقال إلى وضع الراكب</button></div>
+ <div id="driverAccessMessage" role="status" aria-live="polite" style="display:none;margin:12px 18px 0;padding:12px 14px;border-radius:12px;background:#fff4e5;color:#8a4b08;border:1px solid #f2c078;font-size:14px;line-height:1.7;text-align:center"></div>
+<div class="dp-bottom"><button class="dp-existing" id="driverPartnerLogin" type="button">لديّ حساب بالفعل</button><button class="dp-passenger" id="driverPartnerPassenger" type="button">الانتقال إلى وضع الراكب</button></div>
 </div>
 
 
@@ -2287,39 +2288,60 @@ $('driverAccessContinue').onclick=async()=>{
  finally{btn.disabled=false;btn.innerHTML='انتقال إلى الإعداد <span aria-hidden="true">←</span>';}
 };
 function openDriverPermissionsPage(){const p=$('driverPermissionsPage');if(!p)return;p.classList.add('open');p.setAttribute('aria-hidden','false');}
-function closeDriverPermissionsPage(){const p=$('driverPermissionsPage');if(!p)return;p.classList.remove('open');p.setAttribute('aria-hidden','true');}
-$('driverPermissionsClose').onclick=closeDriverPermissionsPage;
-$('driverPermissionsX').onclick=closeDriverPermissionsPage;
-$('driverPermissionsDone').onclick=()=>{closeDriverPermissionsPage();openDriverDashboardPage();};
+function closeDriverPermissionsPage(){const p=$('driverPermissionsPage');if(!p)return;p.classList.remove('open');p.setAtfunction showDriverAccessMessage(message,kind='warning'){
+ const box=$('driverAccessMessage');
+ if(!box)return;
+ box.textContent=message;
+ box.style.display='block';
+ box.style.background=kind==='success'?'#e9fbeF':'#fff4e5';
+ box.style.color=kind==='success'?'#176534':'#8a4b08';
+ box.style.borderColor=kind==='success'?'#91d5a5':'#f2c078';
+}
 async function openDriverDashboardPage(){
  const p=$('driverDashboardPage');
  const client=window.mahattatiSupabase;
- if(!p)return;
- if(!client){toast('تعذّر الاتصال بقاعدة البيانات. لم يتم فتح واجهة السائق.');return;}
+ const btn=$('driverPartnerLogin');
+ if(btn)btn.disabled=true;
+ const message=(text)=>{showDriverAccessMessage(text);toast(text);};
  try{
+  if(!p)throw new Error('تعذّر العثور على واجهة السائق.');
+  if(!client){message('سبب عدم الدخول: تعذّر الاتصال بقاعدة البيانات. تحقق من الإنترنت وحاول مجددًا.');return;}
   const {data:{user},error:authError}=await client.auth.getUser();
   if(authError)throw authError;
   if(!user){
-   toast('سجّل الدخول أولًا للتحقق من حالة حساب السائق.');
+   message('سبب عدم الدخول: لم تسجّل الدخول إلى حسابك بعد. سجّل الدخول أولًا ثم اضغط «لديّ حساب بالفعل» مجددًا.');
    if(typeof window.mahattatiOpenAuth==='function')window.mahattatiOpenAuth();
    return;
   }
   const {data:driver,error}=await client.from('driver_applications').select('status').eq('user_id',user.id).maybeSingle();
   if(error)throw error;
   if(!driver){
-   toast('ليس لديك ملف سائق. أنشئ حساب شريك سائق أولًا.');
+   message('سبب عدم الدخول: لا يوجد طلب شراكة سائق مرتبط بحسابك. اختر «إنشاء حساب شريك سائق» لإرسال طلبك.');
    return;
   }
   if(driver.status!=='approved'){
    const messages={
-    pending:'حسابك قيد الانتظار لدى الإدارة. ستتمكن من الدخول بعد الموافقة.',
-    under_review:'ملف السائق الخاص بك قيد المراجعة حاليًا. يرجى الانتظار.',
-    rejected:'تم رفض طلب شراكة السائق. يرجى التواصل مع الإدارة لمعرفة التفاصيل.'
+    pending:'سبب عدم الدخول: طلبك ما زال قيد الانتظار لدى الإدارة. ستتمكن من الدخول بعد الموافقة.',
+    under_review:'سبب عدم الدخول: ملفك قيد المراجعة حاليًا. يرجى الانتظار حتى تنتهي المراجعة.',
+    rejected:'سبب عدم الدخول: تم رفض طلب شراكة السائق. يرجى التواصل مع الإدارة لمعرفة الخطوة التالية.'
    };
-   toast(messages[driver.status]||'حساب السائق غير معتمد. لا يمكن فتح الواجهة حاليًا.');
+   message(messages[driver.status]||'سبب عدم الدخول: حالة حسابك ('+String(driver.status||'غير محددة')+') لا تسمح بالدخول حاليًا. يرجى التواصل مع الإدارة.');
    return;
   }
+  const box=$('driverAccessMessage');
+  if(box){box.style.display='none';box.textContent='';}
+  closeDriverPartnerPage();
+  closeMenu();
   p.classList.add('open');
+  p.setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+ }catch(error){
+  console.error('Driver dashboard access verification failed:',error);
+  message('سبب عدم الدخول: تعذّر التحقق من حسابك بسبب مشكلة في الاتصال أو صلاحيات قاعدة البيانات. لم نفتح الواجهة حفاظًا على أمان حسابك. حاول مجددًا، وإذا استمرت المشكلة تواصل مع الإدارة.');
+ }finally{
+  if(btn)btn.disabled=false;
+ }
+});
   p.setAttribute('aria-hidden','false');
   document.body.style.overflow='hidden';
  }catch(error){
