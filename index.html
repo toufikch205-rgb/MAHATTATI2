@@ -3135,22 +3135,25 @@ async function checkPassengerRequestStatus(){
   const {data,error}=await client.from('trip_requests').select('id,status,driver_id').eq('id',id).maybeSingle();
   if(error)throw error;
   if(!data)return;
-  if(data.status==='accepted'||data.status==='in_progress'){
+  const status=String(data.status||'').toLowerCase().trim();
+  // Some driver-side flows attach a driver before the status label is normalized.
+  const acceptedStatuses=['accepted','in_progress','driver_accepted','driver_assigned','confirmed','accepted_by_driver'];
+  if(acceptedStatuses.includes(status)||(data.driver_id&&['pending','searching','قيد الانتظار'].includes(status)===false)){
    stopPassengerAcceptancePolling();
    stopRideSearchTimer();
    const modal=$('requestSentModal');
-   if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');modal.style.display='none';}
-   // Stop the search sheet completely; accepted trips switch to the map-following state.
-   stopRideSearchTimer();
+   if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');modal.style.setProperty('display','none','important');}
    const panel=ensurePassengerTrackingPanel();
    panel.style.display='block';
-   panel.style.zIndex='5000';
+   panel.style.zIndex='7000';
+   panel.style.pointerEvents='auto';
+   panel.style.background='rgba(255,255,255,.98)';
    const text=panel.querySelector('#mahattatiDriverTrackingText');
    if(text)text.textContent='تم قبول طلبك! السائق قادم إليك. جارٍ تحديث موقعه على الخريطة…';
    const {data:{user}}=await client.auth.getUser();
    if(user)await refreshPassengerTracking(user);
    toast('قبل السائق طلبك، وهو قادم إليك الآن.');
-  }else if(['cancelled','completed','rejected','expired'].includes(data.status)){
+  }else if(['cancelled','completed','rejected','expired'].includes(status)){
    stopPassengerAcceptancePolling();
    stopRideSearchTimer();
    const status=$('requestSearchStatus');
@@ -3162,7 +3165,7 @@ function startPassengerAcceptancePolling(id){
  stopPassengerAcceptancePolling();
  passengerAcceptancePollId=id;
  checkPassengerRequestStatus();
- passengerAcceptancePollTimer=setInterval(checkPassengerRequestStatus,4000);
+ passengerAcceptancePollTimer=setInterval(checkPassengerRequestStatus,2000);
 }
 
 let requestSubmissionInProgress=false;
