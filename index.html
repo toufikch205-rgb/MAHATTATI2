@@ -2288,7 +2288,8 @@ $('driverAccessContinue').onclick=async()=>{
  finally{btn.disabled=false;btn.innerHTML='انتقال إلى الإعداد <span aria-hidden="true">←</span>';}
 };
 function openDriverPermissionsPage(){const p=$('driverPermissionsPage');if(!p)return;p.classList.add('open');p.setAttribute('aria-hidden','false');}
-function closeDriverPermissionsPage(){const p=$('driverPermissionsPage');if(!p)return;p.classList.remove('open');p.setAtfunction showDriverAccessMessage(message,kind='warning'){
+function closeDriverPermissionsPage(){const p=$('driverPermissionsPage');if(!p)return;p.classList.remove('open');p.setAttribute('aria-hidden','true');}
+function showDriverAccessMessage(message,kind='warning'){
  const box=$('driverAccessMessage');
  if(!box)return;
  box.textContent=message;
