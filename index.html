@@ -306,6 +306,9 @@ button{ -webkit-tap-highlight-color:transparent }
 @media(max-height:700px) { .map-controls { bottom:calc(25dvh + 72px + env(safe-area-inset-bottom)) !important; } }
 @media(max-width:360px) { .map-controls { left:8px !important; bottom:calc(25dvh + 70px + env(safe-area-inset-bottom)) !important; } .map-control { width:40px !important;height:40px !important;flex-basis:40px; } }
 
+
+/* إخفاء أزرار الشراكة التجارية والإدارة من القائمة فقط، مع إبقاء عناصرها في DOM لتجنب كسر معالجات JavaScript */
+#menuMerchant, #menuMerchantAdmin, #menuDriverAdmin { display: none !important; }
 </style>
 <style>
 
